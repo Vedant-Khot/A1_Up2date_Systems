@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_pill %}
+
+{% block title %}Route Planner • {{ labels.brand }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+    .leaflet-popup-content-wrapper {
+        border-radius: 14px;
+        box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.15);
+        border: 1px solid #e5e7eb;
+    }
+    .leaflet-popup-content {
+        margin: 12px 14px;
+        font-family: inherit;
+    }
+    .route-pin {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+        border: 2px solid #ffffff;
+    }
+    .route-pin-stop {
+        background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+    }
+    .route-pin-start {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <!-- Breadcrumb & Title Bar -->
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-1">
+                <a href="/dashboard" class="hover:text-purple-600 transition-colors">Dashboard</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-purple-600 font-bold">Route Planner</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+                    <i class="fa-solid fa-route text-lg"></i>
+                </span>
+                <span>Best Route Planner</span>
+            </h1>
+            <p class="text-sm text-gray-600 mt-1">Optimize stop sequence, minimize driving distance, and launch turn-by-turn navigation.</p>
+        </div>
+
+        {% if route.stops %}
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route.google_maps_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-purple inline-flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-md text-sm font-bold">
+                <i class="fa-solid fa-diamond-turn-right text-base text-yellow-300"></i>
+                <span>Open in Google Maps</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-6">
+        <div class="card p-4 bg-white border border-gray-200/80 shadow-2xs">
+            <div class="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Total Distance</span>
+                <i class="fa-solid fa-road text-purple-600"></i>
+            </div>
+            <div class="text-2xl font-black text-gray-900">{{ route.total_distance_miles }} <span class="text-sm font-semibold text-gray-500">miles</span></div>
+            <div class="text-[11px] text-gray-500 mt-0.5">{% if route.is_road_calculated %}<span class="text-purple-600 font-bold flex items-center gap-1"><i class="fa-solid fa-route"></i> Road-wise distance</span>{% else %}Optimized driving path{% endif %}</div>
+        </div>
+        <div class="card p-4 bg-white border border-gray-200/80 shadow-2xs">
+            <div class="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Est. Drive Time</span>
+                <i class="fa-solid fa-clock text-amber-600"></i>
+            </div>
+            <div class="text-2xl font-black text-gray-900">{{ route.total_duration_mins }} <span class="text-sm font-semibold text-gray-500">mins</span></div>
+            <div class="text-[11px] text-gray-500 mt-0.5">In city traffic</div>
+        </div>
+        <div class="card p-4 bg-white border border-gray-200/80 shadow-2xs">
+            <div class="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Total Stops</span>
+                <i class="fa-solid fa-location-dot text-emerald-600"></i>
+            </div>
+            <div class="text-2xl font-black text-gray-900">{{ route.stops|length }} <span class="text-sm font-semibold text-gray-500">locations</span></div>
+            <div class="text-[11px] text-gray-500 mt-0.5">Visits planned</div>
+        </div>
+        <div class="card p-4 bg-white border border-gray-200/80 shadow-2xs">
+            <div class="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Trip Type</span>
+                <i class="fa-solid fa-arrows-spin text-blue-600"></i>
+            </div>
+            <div class="text-2xl font-black text-gray-900">{% if route.round_trip %}Round trip{% else %}One way{% endif %}</div>
+            <div class="text-[11px] text-gray-500 mt-0.5">{% if route.round_trip %}Returns to Start{% else %}Ends at final stop{% endif %}</div>
+        </div>
+    </div>
+
+    <!-- Filters & Settings Accordion / Card -->
+    <div class="card p-4 sm:p-5 bg-white border border-gray-200/80 mb-6 shadow-2xs">
+        <form method="get" action="/route-planner" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <!-- Start Address -->
+                <div class="sm:col-span-2">
+                    <label for="start_address" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-flag text-emerald-600"></i>
+                        <span>Starting Depot / Location</span>
+                    </label>
+                    <input type="text" id="start_address" name="start_address" value="{{ start_address }}" placeholder="e.g. HQ Office, 14 Baker Street, London NW1 6XE" class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none" required>
+                </div>
+
+                <!-- Date Filter -->
+                <div>
+                    <label for="date" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-day text-purple-600"></i>
+                        <span>Visit Date</span>
+                    </label>
+                    <input type="date" id="date" name="date" value="{{ current_date }}" class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none">
+                </div>
+
+                <!-- Engineer Filter -->
+                {% if user.role == 'office' %}
+                <div>
+                    <label for="engineer_id" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-gear text-purple-600"></i>
+                        <span>Engineer</span>
+                    </label>
+                    <select id="engineer_id" name="engineer_id" class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none">
+                        <option value="">All Engineers</option>
+                        {% for eng in engineers %}
+                        <option value="{{ eng.id }}" {% if current_engineer_id == eng.id %}selected{% endif %}>{{ eng.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <div>
+                    <label for="status" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders text-purple-600"></i>
+                        <span>Status</span>
+                    </label>
+                    <select id="status" name="status" class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none">
+                        <option value="" {% if not current_status %}selected{% endif %}>Active Jobs (New & In Progress)</option>
+                        <option value="new" {% if current_status == 'new' %}selected{% endif %}>New</option>
+                        <option value="in_progress" {% if current_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>Completed</option>
+                    </select>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-gray-100 flex-wrap gap-3">
+                <label class="inline-flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                    <input type="checkbox" name="round_trip" value="true" {% if round_trip %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                    <span>Return to Start (Round Trip)</span>
+                </label>
+
+                <div class="flex items-center gap-2">
+                    <a href="/route-planner" class="btn btn-ghost px-3.5 py-2 text-xs font-bold rounded-xl">Reset</a>
+                    <button type="submit" class="btn btn-purple px-5 py-2 text-xs font-bold rounded-xl inline-flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-yellow-300"></i>
+                        <span>Optimize Best Route</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Main Content: Timeline vs Map -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Left: Stops Itinerary Timeline (5 cols on lg) -->
+        <div class="lg:col-span-5 space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-list-ol text-purple-600"></i>
+                    <span>Optimized Itinerary</span>
+                    <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">{{ route.stops|length }} stops</span>
+                </h2>
+                {% if route.stops %}
+                <span class="text-xs text-gray-500 font-semibold">Shortest travel sequence</span>
+                {% endif %}
+            </div>
+
+            <!-- Start Location Banner -->
+            <div class="card p-3.5 bg-emerald-50/60 border border-emerald-200/80 flex items-start gap-3 rounded-2xl shadow-2xs">
+                <div class="h-8 w-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 text-sm font-bold shadow-xs">
+                    <i class="fa-solid fa-play"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold uppercase text-emerald-800 tracking-wider">Start Origin</span>
+                        <span class="text-[11px] font-semibold text-emerald-700">Depot</span>
+                    </div>
+                    <p class="text-xs font-bold text-gray-900 mt-0.5">{{ route.start.address }}</p>
+                </div>
+            </div>
+
+            {% if not route.stops %}
+            <div class="card p-8 text-center bg-white border border-gray-200/80 rounded-2xl">
+                <div class="h-12 w-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xl mx-auto mb-3">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                </div>
+                <h3 class="text-sm font-extrabold text-gray-900">No matching jobs for this route</h3>
+                <p class="text-xs text-gray-500 mt-1 max-w-xs mx-auto">Adjust the date or status filters above, or create new jobs with addresses to plan your route.</p>
+                <div class="mt-4">
+                    <a href="/jobs/new" class="btn btn-purple text-xs font-bold px-4 py-2 rounded-xl inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Create Job</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Stop Cards List -->
+            <div class="space-y-3">
+                {% for stop in route.stops %}
+                <div class="card p-4 bg-white border border-gray-200/80 rounded-2xl shadow-2xs hover:border-purple-300 transition-all group" data-stop-id="{{ stop.job_id }}" data-lat="{{ stop.lat }}" data-lng="{{ stop.lng }}">
+                    <div class="flex items-start gap-3">
+                        <!-- Number Badge -->
+                        <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
+                            {{ stop.stop_number }}
+                        </div>
+
+                        <!-- Stop Body -->
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <a href="/jobs/{{ stop.job_id }}" class="text-sm font-black text-gray-900 hover:text-purple-600 transition-colors flex items-center gap-1.5">
+                                    <span>{{ stop.work_ref }}</span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-400 group-hover:text-purple-500"></i>
+                                </a>
+                                <span class="status-{{ stop.status }} chip text-[10px] py-0.5 px-2">
+                                    <span>{{ stop.status_label }}</span>
+                                </span>
+                            </div>
+
+                            {% if stop.client %}
+                            <p class="text-xs font-semibold text-gray-600 mt-0.5 truncate">{{ stop.client }}</p>
+                            {% endif %}
+
+                            <p class="text-xs text-gray-700 mt-1 flex items-start gap-1.5 leading-snug">
+                                <i class="fa-solid fa-location-dot text-purple-600 text-[11px] mt-0.5 shrink-0"></i>
+                                <span class="break-words font-medium">{{ stop.site_address }}</span>
+                            </p>
+
+                            <!-- Leg distance info pill -->
+                            <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                                <span class="inline-flex items-center gap-1 text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-md">
+                                    <i class="fa-solid fa-car-side text-[10px]"></i>
+                                    <span>+{{ stop.leg_distance_miles }} mi · {{ stop.leg_duration_mins }} mins</span>
+                                </span>
+                                <span class="font-medium text-gray-400">Total: {{ stop.cumulative_distance_miles }} mi</span>
+                            </div>
+
+                            <!-- Quick Action Buttons -->
+                            <div class="mt-2.5 flex items-center gap-2">
+                                <a href="{{ stop.nav_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost text-xs px-2.5 py-1 rounded-lg text-purple-700 border-purple-200 hover:bg-purple-50 font-bold inline-flex items-center gap-1" title="Open navigation to this stop">
+                                    <i class="fa-solid fa-location-arrow text-[10px]"></i>
+                                    <span>Navigate</span>
+                                </a>
+                                <a href="/jobs/{{ stop.job_id }}/chat" class="btn btn-ghost text-xs px-2.5 py-1 rounded-lg text-gray-700 hover:bg-gray-100 font-bold inline-flex items-center gap-1" title="Open job chat">
+                                    <i class="fa-regular fa-comment text-[10px]"></i>
+                                    <span>Chat</span>
+                                </a>
+                                <a href="/jobs/{{ stop.job_id }}" class="btn btn-ghost text-xs px-2.5 py-1 rounded-lg text-gray-700 hover:bg-gray-100 font-bold ml-auto inline-flex items-center gap-1">
+                                    <span>Details</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Return to Start Card if Round Trip -->
+                {% if route.round_trip and route.stops and route.return_leg %}
+                <div class="card p-3.5 bg-emerald-50/60 border border-emerald-200/80 flex items-start gap-3 rounded-2xl shadow-2xs">
+                    <div class="h-8 w-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 text-sm font-bold shadow-xs">
+                        <i class="fa-solid fa-flag-checkered"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold uppercase text-emerald-800 tracking-wider">End Destination</span>
+                            <span class="text-[11px] font-bold text-emerald-700">+{{ route.return_leg.leg_distance_miles }} mi · {{ route.return_leg.leg_duration_mins }} mins</span>
+                        </div>
+                        <p class="text-xs font-bold text-gray-900 mt-0.5">Return to {{ route.start.address }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Interactive Leaflet Map (7 cols on lg) -->
+        <div class="lg:col-span-7 sticky top-20">
+            <div class="card overflow-hidden bg-white border border-gray-200/80 rounded-2xl shadow-sm">
+                <div class="card-bar px-4 py-3 bg-gray-900 text-white flex items-center justify-between">
+                    <span class="text-xs font-black tracking-wider uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-map text-purple-400"></i>
+                        <span>Route Map View</span>
+                    </span>
+                    <button type="button" id="fitMapBtn" class="text-xs text-purple-300 hover:text-white font-bold inline-flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-expand text-[10px]"></i>
+                        <span>Fit All Stops</span>
+                    </button>
+                </div>
+                <!-- Map Container -->
+                <div id="routeMap" class="w-full h-[520px] bg-gray-100 z-10"></div>
+                <div class="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                            <span>Start Depot</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1">
+                            <span class="h-2.5 w-2.5 rounded-full bg-purple-600 inline-block"></span>
+                            <span>Numbered Stops</span>
+                        </span>
+                    </div>
+                    <span class="text-[11px] text-gray-400">Map data © OpenStreetMap contributors</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const routeData = {{ route|tojson }};
+        const mapContainer = document.getElementById("routeMap");
+        if (!mapContainer || !window.L) return;
+
+        // Initialize Map
+        const map = L.map("routeMap", {
+            zoomControl: true,
+            scrollWheelZoom: true,
+        });
+
+        // Add OpenStreetMap Tile Layer
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        const markers = [];
+        const latLngs = [];
+
+        // 1. Add Start Pin
+        if (routeData.start && routeData.start.lat && routeData.start.lng) {
+            const startIcon = L.divIcon({
+                className: "custom-div-icon",
+                html: '<div class="route-pin route-pin-start" style="width: 32px; height: 32px;"><i class="fa-solid fa-flag text-[11px]"></i></div>',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
+            const startMarker = L.marker([routeData.start.lat, routeData.start.lng], { icon: startIcon })
+                .addTo(map)
+                .bindPopup('<strong>Start Depot:</strong><br>' + routeData.start.address);
+            markers.push(startMarker);
+            latLngs.push([routeData.start.lat, routeData.start.lng]);
+        }
+
+        // 2. Add Stop Pins
+        (routeData.stops || []).forEach(function (stop) {
+            if (!stop.lat || !stop.lng) return;
+            const stopIcon = L.divIcon({
+                className: "custom-div-icon",
+                html: '<div class="route-pin route-pin-stop" style="width: 30px; height: 30px;">' + stop.stop_number + '</div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15]
+            });
+
+            const popupContent = `
+                <div style="font-size: 13px; line-height: 1.4;">
+                    <div style="font-weight: 800; font-size: 14px; margin-bottom: 2px;">Stop ${stop.stop_number}: ${stop.work_ref}</div>
+                    <div style="color: #4b5563; font-size: 12px; margin-bottom: 6px;">${stop.client || ''}</div>
+                    <div style="font-size: 12px; margin-bottom: 8px;"><strong>Address:</strong> ${stop.site_address}</div>
+                    <div style="display: flex; gap: 6px;">
+                        <a href="${stop.nav_url}" target="_blank" style="display: inline-block; padding: 4px 8px; background: #9333ea; color: #fff; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 700;">Navigate</a>
+                        <a href="/jobs/${stop.job_id}" style="display: inline-block; padding: 4px 8px; background: #f3f4f6; color: #111; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 700;">Job Details</a>
+                    </div>
+                </div>
+            `;
+
+            const marker = L.marker([stop.lat, stop.lng], { icon: stopIcon })
+                .addTo(map)
+                .bindPopup(popupContent);
+            markers.push(marker);
+            latLngs.push([stop.lat, stop.lng]);
+        });
+
+        // 3. If round trip, complete loop back to start
+        if (routeData.round_trip && routeData.start && latLngs.length > 1) {
+            latLngs.push([routeData.start.lat, routeData.start.lng]);
+        }
+
+        // 4. Draw Connecting Polyline (Road Geometry)
+        let roadPolylineCoords = [];
+        if (routeData.geometry_coords && routeData.geometry_coords.length > 0) {
+            // geometry_coords are [lon, lat], Leaflet polyline expects [lat, lon]
+            roadPolylineCoords = routeData.geometry_coords.map(c => [c[1], c[0]]);
+        } else if (latLngs.length > 1) {
+            roadPolylineCoords = latLngs;
+        }
+
+        if (roadPolylineCoords.length > 1) {
+            L.polyline(roadPolylineCoords, {
+                color: "#9333ea",
+                weight: 5,
+                opacity: 0.85,
+            }).addTo(map);
+        }
+
+        // 5. Fit Bounds
+        function fitAll() {
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.15));
+            } else {
+                map.setView([51.5074, -0.1278], 12);
+            }
+        }
+        fitAll();
+
+        const fitBtn = document.getElementById("fitMapBtn");
+        if (fitBtn) {
+            fitBtn.addEventListener("click", fitAll);
+        }
+
+        // Highlighting card clicks to open popup on map
+        document.querySelectorAll("[data-stop-id]").forEach(function (card) {
+            card.addEventListener("click", function (e) {
+                if (e.target.closest("a") || e.target.closest("button")) return;
+                const lat = parseFloat(card.dataset.lat);
+                const lng = parseFloat(card.dataset.lng);
+                if (lat && lng) {
+                    map.flyTo([lat, lng], 15, { duration: 0.8 });
+                    const targetMarker = markers.find(m => {
+                        const pos = m.getLatLng();
+                        return Math.abs(pos.lat - lat) < 0.0001 && Math.abs(pos.lng - lng) < 0.0001;
+                    });
+                    if (targetMarker) targetMarker.openPopup();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

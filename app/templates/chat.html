@@ -1,0 +1,1083 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_pill %}
+{% block title %}{% if job %}Chat — {{ job.work_ref }}{% else %}Chats — {{ labels.brand }}{% endif %}{% endblock %}
+{% block content %}
+<style>
+    body:has(.wa-app) { height: 100dvh; overflow: hidden; }
+    body:has(.wa-app) .site-footer { display: none; }
+    body:has(.wa-app) #content {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    .wa-app {
+        display: flex;
+        flex: 1;
+        flex-direction: row;
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        min-height: 0;
+        margin-inline: auto;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 10px 25px -5px rgb(3 7 18 / 0.05), 0 8px 10px -6px rgb(3 7 18 / 0.03);
+    }
+    .wa-side {
+        display: flex;
+        flex: 0 0 22rem;
+        flex-direction: column;
+        width: 22rem;
+        min-width: 0;
+        min-height: 0;
+        border-right: 1px solid #f3f4f6;
+        background: #f9fafb;
+    }
+    .wa-side-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 3.75rem;
+        padding: 0.75rem 1.15rem;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    body .wa-side-top h2 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #030712; }
+    .wa-side-list { flex: 1; min-height: 0; overflow-y: auto; }
+    .wa-side a, .wa-side a:hover { color: inherit; text-decoration: none; }
+    .wa-chat-link {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        min-height: 4.5rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background-color 150ms ease;
+    }
+    .wa-chat-link:hover { background: #faf5ff; }
+    .wa-chat-link[aria-current="page"] {
+        background: #ffffff;
+        box-shadow: inset 3px 0 0 #9333ea;
+    }
+    .wa-chat-link:focus-visible { outline: 2px solid #9333ea; outline-offset: -2px; }
+    .wa-side-copy { min-width: 0; flex: 1; }
+    .wa-side-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+    .wa-side-title { font-size: 0.9375rem; font-weight: 800; color: #030712; }
+    .wa-side-time { flex: 0 0 auto; color: #9ca3af; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .wa-side-preview {
+        display: block;
+        margin-top: 0.2rem;
+        overflow: hidden;
+        color: #6b7280;
+        font-size: 0.8125rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .wa-side-empty { margin: 2rem 1.25rem; color: #9ca3af; font-size: 0.875rem; text-align: center; }
+    .wa-thread { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; background: #ffffff; }
+    .wa-pick { margin: auto; padding: 2rem; color: #9ca3af; text-align: center; font-size: 0.9375rem; font-weight: 500; }
+    .wa-top {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-height: 3.75rem;
+        padding: 0.65rem 1.25rem;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .wa-back, .wa-send {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        border-radius: 9999px;
+        text-decoration: none;
+    }
+    .wa-back { width: 2.25rem; height: 2.25rem; color: #6b7280; background: transparent; }
+    .wa-back:hover { background: #f3f4f6; color: #030712; }
+    .wa-avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 12px;
+        background: #faf5ff;
+        color: #9333ea;
+        font-size: 0.8125rem;
+        font-weight: 800;
+        border: 1px solid #e9d5ff;
+    }
+    body .wa-top h1 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 800;
+        line-height: 1.25;
+        color: #030712;
+    }
+    .wa-sub {
+        margin: 0;
+        overflow: hidden;
+        color: #6b7280;
+        font-size: 0.78rem;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .wa-details {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 2.25rem;
+        margin-left: auto;
+        padding: 0.35rem 0.85rem;
+        color: #9333ea;
+        background: #faf5ff;
+        border: 1px solid #e9d5ff;
+        border-radius: 10px;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 150ms ease;
+    }
+    .wa-details:hover { background: #f3e8ff; color: #7e22ce; }
+    .wa-notif-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 10px;
+        background: #faf5ff;
+        color: #9333ea;
+        border: 1px solid #e9d5ff;
+        cursor: pointer;
+        transition: all 150ms ease;
+    }
+    .wa-notif-btn:hover { background: #f3e8ff; color: #7e22ce; }
+    .wa-notif-btn.active { background: #9333ea; color: #ffffff; border-color: #9333ea; }
+    .wa-scroll-btn {
+        position: absolute;
+        bottom: 5.25rem;
+        right: 1.5rem;
+        z-index: 20;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.9rem;
+        border-radius: 9999px;
+        background: #9333ea;
+        color: #ffffff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4);
+        border: 0;
+        cursor: pointer;
+        transition: all 150ms ease;
+    }
+    .wa-scroll-btn:hover { background: #7e22ce; transform: translateY(-2px); }
+    .wa-toast {
+        position: fixed;
+        top: 4.5rem;
+        right: 1.5rem;
+        z-index: 9999;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        max-width: 22rem;
+        padding: 0.75rem 1rem;
+        background: #030712;
+        color: #ffffff;
+        border: 1px solid rgba(147, 51, 234, 0.4);
+        border-radius: 14px;
+        box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transform: translateY(-12px);
+        transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+    }
+    .wa-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+    .wa-unread-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        background: #9333ea;
+        margin-left: auto;
+        box-shadow: 0 0 0 2px #ffffff;
+    }
+    .wa-log {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 1rem 1rem 0.75rem;
+        background-color: #f9fafb;
+        background-image: radial-gradient(rgb(147 51 234 / 0.08) 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+    .wa-day, .wa-empty {
+        width: fit-content;
+        margin: 0.75rem auto;
+        border-radius: 9999px;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+        border: 1px solid #e5e7eb;
+        color: #6b7280;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.3;
+        padding: 0.25rem 0.85rem;
+    }
+    .wa-row { display: flex; margin: 0.25rem 0.25rem; }
+    .wa-row.mine { justify-content: flex-end; }
+    .wa-row.other { justify-content: flex-start; }
+    .wa-row.wa-start { margin-top: 0.65rem; }
+    .wa-log .bubble {
+        position: relative;
+        max-width: min(80%, 30rem);
+        border-radius: 14px;
+        padding: 0.55rem 0.85rem 0.5rem 0.85rem;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        white-space: normal;
+    }
+    .wa-log .bubble-other {
+        background: #ffffff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        border-top-left-radius: 4px;
+    }
+    .wa-log .bubble-mine {
+        background: linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%);
+        color: #ffffff;
+        border-top-right-radius: 4px;
+        box-shadow: 0 2px 6px rgb(147 51 234 / 0.35);
+    }
+    .wa-name { display: block; margin-bottom: 0.2rem; font-size: 0.75rem; font-weight: 800; line-height: 1.3; }
+    .wa-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .wa-time {
+        float: right;
+        margin: 0.35rem 0 0 0.75rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1.2;
+        white-space: nowrap;
+        position: relative;
+        top: 0.2rem;
+    }
+    .bubble-other .wa-time { color: #9ca3af; }
+    .bubble-mine .wa-time { color: rgba(255, 255, 255, 0.8); }
+    .wa-compose {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.65rem;
+        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+        background: #ffffff;
+        border-top: 1px solid #e5e7eb;
+    }
+    #chat-body.wa-input {
+        display: block;
+        width: 100%;
+        min-height: 2.75rem;
+        max-height: 10rem;
+        margin: 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 1.25rem;
+        background: #f9fafb;
+        padding: 0.65rem 1rem;
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        color: #111827;
+        box-shadow: none;
+        transition: all 150ms ease;
+    }
+    #chat-body.wa-input:focus {
+        outline: none;
+        border-color: #9333ea;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgb(147 51 234 / 0.15);
+    }
+    .wa-send {
+        width: 2.75rem;
+        height: 2.75rem;
+        border: 0;
+        background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+        color: #fff;
+        font-size: 0.95rem;
+        box-shadow: 0 2px 6px rgb(147 51 234 / 0.35);
+        cursor: pointer;
+        transition: all 150ms ease;
+    }
+    .wa-send:hover {
+        background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
+        transform: scale(1.05);
+    }
+    .wa-send:active { transform: scale(0.95); }
+    .wa-send:disabled { opacity: 0.6; cursor: not-allowed; }
+    @media (min-width: 768px) {
+        .wa-to-list { display: none; }
+    }
+    @media (max-width: 767px) {
+        body:has(.wa-app) #content { padding: 0; }
+        .wa-app { flex-direction: column; border: 0; border-radius: 0; box-shadow: none; }
+        .wa-app.has-thread .wa-side { display: none; }
+        .wa-app.list-only .wa-thread { display: none; }
+        .wa-side { width: auto; flex: 1 1 auto; border-right: 0; }
+        .wa-log .bubble { max-width: 86%; }
+    }
+</style>
+
+<section class="wa-app {% if job %}has-thread{% else %}list-only{% endif %}" aria-label="Job chats">
+    <!-- Chats Sidebar -->
+    <aside class="wa-side" aria-label="All job chats">
+        <div class="wa-side-top">
+            <h2>Messages</h2>
+            <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-800">{{ chats|length }} chats</span>
+        </div>
+        {% if chats %}
+        <div class="wa-side-list">
+            {% for item in chats %}
+            {% set stamp = item.last_at|when %}
+            <a class="wa-chat-link" href="/jobs/{{ item.id }}/chat" data-chat-id="{{ item.id }}" {% if job and item.id == job.id %}aria-current="page"{% endif %}>
+                <span class="wa-avatar" aria-hidden="true">{{ item.work_ref[:2] }}</span>
+                <span class="wa-side-copy">
+                    <span class="wa-side-line">
+                        <span class="wa-side-title">{{ item.work_ref }}</span>
+                        {% if stamp %}<time class="wa-side-time" datetime="{{ item.last_at }}">{{ stamp.split(', ')[0] }}</time>{% endif %}
+                    </span>
+                    <span class="wa-side-preview" title="{{ item.last_body or item.site_address }}">{{ item.last_body or item.site_address or 'No messages yet' }}</span>
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="wa-side-empty">No active conversations yet.</p>
+        {% endif %}
+    </aside>
+
+    <!-- Main Chat Thread -->
+    <div class="wa-thread">
+        <div id="thread-content" class="flex-1 flex flex-col min-h-0 min-w-0 {% if not job %}hidden{% endif %}">
+            <header class="wa-top">
+                <a href="/chats" class="wa-back wa-to-list" aria-label="All chats"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+                <span id="chat-header-avatar" class="wa-avatar" aria-hidden="true">{{ job.work_ref[:2] if job else '' }}</span>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                        <h1 id="chat-header-title">{{ job.work_ref if job else '' }}</h1>
+                        <span id="chat-header-status">{{ status_pill(job) if job else '' }}</span>
+                    </div>
+                    <p id="chat-header-sub" class="wa-sub">{{ job.site_address if job else '' }}{% if job and job.engineers %} · {{ job.engineers }}{% elif job %} · Unassigned{% endif %}</p>
+                </div>
+                <div class="flex items-center gap-2 ml-auto">
+                    <button type="button" id="notif-toggle-btn" class="wa-notif-btn" title="Notification chime & alerts" aria-label="Toggle notifications">
+                        <i id="notif-bell-icon" class="fa-solid fa-bell text-xs"></i>
+                    </button>
+                    <a id="chat-header-details" href="{% if job %}/jobs/{{ job.id }}{% else %}#{% endif %}" class="wa-details">
+                        <i class="fa-solid fa-file-lines text-xs"></i>
+                        <span>Job Details</span>
+                    </a>
+                </div>
+            </header>
+
+            <div class="relative flex-1 flex flex-col min-h-0 min-w-0">
+                <div id="chat-log" class="wa-log custom-scrollbar" role="log" aria-live="polite" tabindex="0" aria-label="Messages" data-job-id="{{ job.id if job else '' }}" data-work-ref="{{ job.work_ref if job else '' }}" data-user-id="{{ user.id }}" data-office-label="{{ labels.role.office }}">
+                    <!-- Load Older Messages Button Container -->
+                    <div id="load-older-container" class="{% if not has_more %}hidden{% endif %} text-center py-2 mb-2">
+                        <button type="button" id="load-older-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-xs font-bold text-purple-700 border border-purple-200 shadow-2xs hover:bg-purple-50 transition-all cursor-pointer">
+                            <i class="fa-solid fa-clock-rotate-left text-[11px]"></i>
+                            <span id="load-older-text">Load older messages</span>
+                        </button>
+                    </div>
+
+                    {% set thread = namespace(day='', author='') %}
+                    {% set hues = ['#9333ea', '#7e22ce', '#059669', '#d97706'] %}
+                    {% for message in messages %}
+                    {% set stamp = message.created_at|when %}
+                    {% set parts = stamp.split(', ') %}
+                    {% set day = parts[0] if parts|length > 1 else stamp %}
+                    {% set clock = parts[1] if parts|length > 1 else stamp %}
+                    {% if day != thread.day %}
+                    <div class="wa-day">{{ day }}</div>
+                    {% set thread.day = day %}
+                    {% set thread.author = '' %}
+                    {% endif %}
+                    {% set mine = message.author_id == user.id %}
+                    {% set follow = message.author_id == thread.author %}
+                    <article class="wa-row {% if mine %}mine{% else %}other{% endif %} {% if follow %}wa-follow{% else %}wa-start{% endif %}" data-message-id="{{ message.id }}" data-author="{{ message.author_id }}" data-day="{{ day }}" data-created-at="{{ message.created_at }}">
+                        <div class="bubble {% if mine %}bubble-mine{% else %}bubble-other{% endif %}">
+                            {% if not mine and not follow %}
+                            <span class="wa-name" style="color: {{ hues[message.author_name|length % 4] }}">{{ message.author_name }}{% if message.author_role == 'office' %} · {{ labels.role.office }}{% endif %}</span>
+                            {% endif %}
+                            <span class="wa-text">{{ message.body }}</span>
+                            <span class="wa-time"><time datetime="{{ message.created_at }}">{{ clock }}</time></span>
+                        </div>
+                    </article>
+                    {% set thread.author = message.author_id %}
+                    {% else %}
+                    <p class="wa-empty" data-empty>No messages yet in this thread.</p>
+                    {% endfor %}
+                </div>
+                <button type="button" id="scroll-bottom-btn" class="wa-scroll-btn hidden" aria-label="Scroll to newest messages">
+                    <i class="fa-solid fa-arrow-down text-[10px]"></i>
+                    <span id="scroll-btn-text">New message</span>
+                </button>
+            </div>
+
+            <form id="chat-form" method="post" action="{% if job %}/jobs/{{ job.id }}/chat{% else %}#{% endif %}" class="wa-compose">
+                {{ csrf_field() }}
+                <label class="min-w-0 flex-1">
+                    <span class="sr-only">Type a message</span>
+                    <textarea id="chat-body" name="body" required rows="1" placeholder="Type a message to the team…" aria-label="Message" autocomplete="off" enterkeyhint="send" autofocus class="wa-input"></textarea>
+                </label>
+                <button type="submit" id="chat-send-btn" class="wa-send" data-loading-label="…" aria-label="Send message" title="Send message (Enter)">
+                    <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                </button>
+            </form>
+        </div>
+
+        <div id="thread-empty" class="wa-pick flex flex-col items-center justify-center h-full {% if job %}hidden{% endif %}">
+            <div class="h-16 w-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl mb-3 border border-purple-100 shadow-sm">
+                <i class="fa-solid fa-comments"></i>
+            </div>
+            <p class="text-base font-bold text-gray-900">No conversation selected</p>
+            <p class="text-xs text-gray-500 mt-1">Select a job from the left sidebar to open or start a conversation.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Floating Toast Notification -->
+<div id="chat-toast" class="wa-toast" role="alert" aria-live="assertive">
+    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-900/60 text-purple-300 text-xs font-bold border border-purple-700/60 shrink-0">
+        <i class="fa-solid fa-comment-dots"></i>
+    </span>
+    <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-1">
+            <strong id="toast-title" class="text-xs font-bold text-white truncate">New Message</strong>
+            <span id="toast-time" class="text-[10px] text-gray-400">just now</span>
+        </div>
+        <p id="toast-body" class="text-xs text-gray-300 mt-0.5 line-clamp-2 break-words leading-relaxed"></p>
+    </div>
+    <button type="button" id="toast-close" class="text-gray-400 hover:text-white text-xs p-1 -mr-1 -mt-1 cursor-pointer" aria-label="Dismiss">
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const log = document.getElementById("chat-log");
+    const box = document.getElementById("chat-body");
+    const form = document.getElementById("chat-form");
+    const sendBtn = document.getElementById("chat-send-btn");
+    const scrollBtn = document.getElementById("scroll-bottom-btn");
+    const scrollText = document.getElementById("scroll-btn-text");
+    const loadOlderContainer = document.getElementById("load-older-container");
+    const loadOlderBtn = document.getElementById("load-older-btn");
+    const loadOlderText = document.getElementById("load-older-text");
+    const toast = document.getElementById("chat-toast");
+    const toastTitle = document.getElementById("toast-title");
+    const toastBody = document.getElementById("toast-body");
+    const toastClose = document.getElementById("toast-close");
+    const notifBtn = document.getElementById("notif-toggle-btn");
+    const hues = ["#9333ea", "#7e22ce", "#059669", "#d97706"];
+
+    let originalTitle = document.title;
+    let unreadCount = 0;
+    let isInitialLoad = true;
+    let toastTimer = null;
+    let soundEnabled = true;
+    let isLoadingOlder = false;
+
+    // --- Web Audio Notification Chime ---
+    function playNotificationSound() {
+        if (!soundEnabled) return;
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const now = ctx.currentTime;
+
+            // Two-tone friendly chime (E5 -> B5)
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc1.type = "sine";
+            osc1.frequency.setValueAtTime(659.25, now); // E5
+
+            osc2.type = "sine";
+            osc2.frequency.setValueAtTime(987.77, now + 0.1); // B5
+
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc1.start(now);
+            osc1.stop(now + 0.12);
+            osc2.start(now + 0.1);
+            osc2.stop(now + 0.45);
+        } catch (e) {
+            // Audio autoplay policy
+        }
+    }
+
+    // --- In-App Floating Toast Notification ---
+    function showNotificationToast(title, body) {
+        if (!toast) return;
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTitle.textContent = title || "New Message";
+        toastBody.textContent = body || "";
+        toast.classList.add("show");
+        toastTimer = setTimeout(function () {
+            toast.classList.remove("show");
+        }, 4500);
+    }
+    if (toastClose) {
+        toastClose.addEventListener("click", function () {
+            if (toast) toast.classList.remove("show");
+        });
+    }
+
+    // --- Desktop / Browser Notification ---
+    function triggerDesktopNotification(author, body) {
+        if (!("Notification" in window)) return;
+        if (Notification.permission === "granted" && (!document.hasFocus() || document.hidden)) {
+            try {
+                const workRef = log ? (log.dataset.workRef || "SiteLog") : "SiteLog";
+                new Notification(author + " (" + workRef + ")", {
+                    body: body,
+                    icon: "/static/logo.png"
+                });
+            } catch (e) {}
+        }
+    }
+
+    // --- Document Title Unread Badge ---
+    function setUnreadTitle(count) {
+        if (count > 0 && (!document.hasFocus() || document.hidden)) {
+            document.title = "(" + count + ") New message • " + originalTitle;
+        } else {
+            unreadCount = 0;
+            document.title = originalTitle;
+        }
+    }
+    window.addEventListener("focus", function () {
+        unreadCount = 0;
+        document.title = originalTitle;
+        if (box) box.focus();
+    });
+
+    // --- Notification Bell Button ---
+    if (notifBtn) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            notifBtn.classList.add("active");
+            notifBtn.title = "Notifications enabled (Click to test chime)";
+        }
+        notifBtn.addEventListener("click", async function () {
+            playNotificationSound();
+            if ("Notification" in window) {
+                if (Notification.permission === "default") {
+                    const perm = await Notification.requestPermission();
+                    if (perm === "granted") {
+                        notifBtn.classList.add("active");
+                        showNotificationToast("Notifications Enabled", "You will now receive desktop alerts for incoming messages.");
+                    }
+                } else if (Notification.permission === "granted") {
+                    showNotificationToast("Notification Sound Test", "Chime is active and working!");
+                }
+            } else {
+                showNotificationToast("Notification Chime", "Audio chime tested.");
+            }
+            if (box) box.focus();
+        });
+    }
+
+    // --- Floating Scroll-to-Bottom Pill ---
+    function isPinnedToBottom() {
+        if (!log) return true;
+        return log.scrollHeight - log.scrollTop - log.clientHeight <= 60;
+    }
+    if (log) {
+        log.addEventListener("scroll", function () {
+            if (scrollBtn && isPinnedToBottom()) {
+                scrollBtn.classList.add("hidden");
+            }
+            if (log.scrollTop < 30 && loadOlderContainer && !loadOlderContainer.classList.contains("hidden") && !isLoadingOlder) {
+                loadOlderMessages();
+            }
+        });
+    }
+    if (scrollBtn && log) {
+        scrollBtn.addEventListener("click", function () {
+            log.scrollTop = log.scrollHeight;
+            scrollBtn.classList.add("hidden");
+            if (box) box.focus();
+        });
+    }
+
+    function splitStamp(message) {
+        const stamp = message.when || message.created_at || "";
+        const parts = stamp.split(", ");
+        if (parts.length > 1) return { day: parts[0], clock: parts[1] };
+        return { day: stamp, clock: stamp };
+    }
+
+    function createMessageElement(message, isFollow, dayStr) {
+        const mine = message.author_id === (log ? log.dataset.userId : "");
+        const stamp = splitStamp(message);
+        const article = document.createElement("article");
+        article.className = "wa-row " + (mine ? "mine" : "other") + (isFollow ? " wa-follow" : " wa-start");
+        article.dataset.messageId = message.id;
+        article.dataset.author = message.author_id;
+        article.dataset.day = dayStr || stamp.day;
+        article.dataset.createdAt = message.created_at || "";
+
+        const body = document.createElement("div");
+        body.className = "bubble " + (mine ? "bubble-mine" : "bubble-other");
+        if (!mine && !isFollow) {
+            const who = document.createElement("span");
+            who.className = "wa-name";
+            const label = message.author_name + (message.author_role === "office" ? " · " + (log ? log.dataset.officeLabel : "") : "");
+            who.textContent = label;
+            who.style.color = hues[(message.author_name || "").length % hues.length];
+            body.appendChild(who);
+        }
+        const text = document.createElement("span");
+        text.className = "wa-text";
+        text.textContent = message.body;
+
+        const when = document.createElement("span");
+        when.className = "wa-time";
+        const time = document.createElement("time");
+        time.dateTime = message.created_at || "";
+        time.textContent = stamp.clock;
+        when.appendChild(time);
+
+        body.appendChild(text);
+        body.appendChild(when);
+        article.appendChild(body);
+        return article;
+    }
+
+    function renderMessage(message) {
+        const stamp = splitStamp(message);
+        const rows = log.querySelectorAll("[data-author]");
+        const previous = rows.length ? rows[rows.length - 1] : null;
+        const sameDay = previous && previous.dataset.day === stamp.day;
+        const follow = sameDay && previous.dataset.author === message.author_id;
+        const fragment = document.createDocumentFragment();
+        if (!sameDay && stamp.day) {
+            const day = document.createElement("div");
+            day.className = "wa-day";
+            day.textContent = stamp.day;
+            fragment.appendChild(day);
+        }
+        fragment.appendChild(createMessageElement(message, follow, stamp.day));
+        return fragment;
+    }
+
+    function renderMessagesBatch(messages) {
+        const fragment = document.createDocumentFragment();
+        let currentDay = null;
+        let lastAuthor = null;
+        (messages || []).forEach(function (msg) {
+            const stamp = splitStamp(msg);
+            if (stamp.day !== currentDay) {
+                const day = document.createElement("div");
+                day.className = "wa-day";
+                day.textContent = stamp.day;
+                fragment.appendChild(day);
+                currentDay = stamp.day;
+                lastAuthor = null;
+            }
+            const follow = lastAuthor === msg.author_id;
+            fragment.appendChild(createMessageElement(msg, follow, stamp.day));
+            lastAuthor = msg.author_id;
+        });
+        return fragment;
+    }
+
+    // --- On-Demand Loading of Older Messages ---
+    async function loadOlderMessages() {
+        if (!log || !log.dataset.jobId || isLoadingOlder) return;
+        const firstRow = log.querySelector("article.wa-row");
+        if (!firstRow) return;
+        const oldestTime = firstRow.dataset.createdAt || (firstRow.querySelector("time") ? firstRow.querySelector("time").getAttribute("datetime") : "");
+        if (!oldestTime) return;
+
+        isLoadingOlder = true;
+        if (loadOlderBtn) {
+            loadOlderBtn.disabled = true;
+            if (loadOlderText) loadOlderText.textContent = "Loading...";
+        }
+
+        try {
+            const res = await fetch("/api/jobs/" + log.dataset.jobId + "/messages?limit=10&before=" + encodeURIComponent(oldestTime));
+            if (!res.ok) return;
+            const data = await res.json();
+            const older = data.messages || [];
+            if (older.length > 0) {
+                const prevScrollHeight = log.scrollHeight;
+                const prevScrollTop = log.scrollTop;
+
+                const frag = renderMessagesBatch(older);
+
+                // Check boundary between last older message and previously first message
+                const lastOlder = older[older.length - 1];
+                const lastOlderStamp = splitStamp(lastOlder);
+                const prevDayEl = firstRow.previousElementSibling;
+                if (prevDayEl && prevDayEl.classList.contains("wa-day") && prevDayEl.textContent === lastOlderStamp.day) {
+                    prevDayEl.remove();
+                }
+                if (firstRow.dataset.day === lastOlderStamp.day && firstRow.dataset.author === lastOlder.author_id) {
+                    firstRow.classList.remove("wa-start");
+                    firstRow.classList.add("wa-follow");
+                    const nameEl = firstRow.querySelector(".wa-name");
+                    if (nameEl) nameEl.remove();
+                }
+
+                if (loadOlderContainer) {
+                    loadOlderContainer.after(frag);
+                } else {
+                    log.prepend(frag);
+                }
+
+                // Smoothly preserve scroll position
+                log.scrollTop = (log.scrollHeight - prevScrollHeight) + prevScrollTop;
+            }
+
+            if (loadOlderContainer) {
+                if (data.has_more) {
+                    loadOlderContainer.classList.remove("hidden");
+                } else {
+                    loadOlderContainer.classList.add("hidden");
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isLoadingOlder = false;
+            if (loadOlderBtn) {
+                loadOlderBtn.disabled = false;
+                if (loadOlderText) loadOlderText.textContent = "Load older messages";
+            }
+        }
+    }
+
+    if (loadOlderBtn) {
+        loadOlderBtn.addEventListener("click", function () {
+            loadOlderMessages();
+        });
+    }
+
+    // --- Helper to render status chip ---
+    function renderStatusPill(status, statusLabel) {
+        let icon = "";
+        if (status === "new") icon = '<span class="chip-dot"></span>';
+        else if (status === "in_progress") icon = '<span class="chip-dot chip-dot-pulse"></span>';
+        else if (status === "completed") icon = '<i class="fa-solid fa-check text-[10px]" aria-hidden="true"></i>';
+        else if (status === "discarded") icon = '<i class="fa-solid fa-ban text-[10px]" aria-hidden="true"></i>';
+        return '<span class="status-' + (status || "new") + ' chip">' + icon + '<span>' + (statusLabel || status || "New") + '</span></span>';
+    }
+
+    // --- Client-Side Instant Chat Switching ---
+    async function switchToChat(jobId, pushHistory) {
+        if (!jobId) return;
+
+        // Visual sidebar indicator
+        document.querySelectorAll(".wa-chat-link").forEach(function (item) {
+            if (item.dataset.chatId === jobId) {
+                item.setAttribute("aria-current", "page");
+            } else {
+                item.removeAttribute("aria-current");
+            }
+        });
+
+        if (pushHistory) {
+            history.pushState({ jobId: jobId }, "", "/jobs/" + jobId + "/chat");
+        }
+
+        try {
+            const res = await fetch("/api/jobs/" + jobId + "/messages?limit=10");
+            if (!res.ok) {
+                window.location.href = "/jobs/" + jobId + "/chat";
+                return;
+            }
+            const data = await res.json();
+            const job = data.job;
+
+            // Unhide conversation pane
+            const threadContent = document.getElementById("thread-content");
+            const threadEmpty = document.getElementById("thread-empty");
+            if (threadContent) threadContent.classList.remove("hidden");
+            if (threadEmpty) threadEmpty.classList.add("hidden");
+
+            // Update header elements
+            const headerAvatar = document.getElementById("chat-header-avatar");
+            const headerTitle = document.getElementById("chat-header-title");
+            const headerStatus = document.getElementById("chat-header-status");
+            const headerSub = document.getElementById("chat-header-sub");
+            const headerDetails = document.getElementById("chat-header-details");
+
+            if (headerAvatar) headerAvatar.textContent = (job.work_ref || "").slice(0, 2);
+            if (headerTitle) headerTitle.textContent = job.work_ref;
+            if (headerStatus) headerStatus.innerHTML = renderStatusPill(job.status, job.status_label);
+            if (headerSub) {
+                headerSub.textContent = (job.site_address || "") + (job.engineers ? " · " + job.engineers : " · Unassigned");
+            }
+            if (headerDetails) headerDetails.href = "/jobs/" + job.id;
+
+            // Reset log and populate with 10 initial messages
+            if (log) {
+                log.dataset.jobId = job.id;
+                log.dataset.workRef = job.work_ref;
+
+                Array.from(log.children).forEach(function (child) {
+                    if (child.id !== "load-older-container") {
+                        child.remove();
+                    }
+                });
+
+                if (loadOlderContainer) {
+                    if (data.has_more) {
+                        loadOlderContainer.classList.remove("hidden");
+                    } else {
+                        loadOlderContainer.classList.add("hidden");
+                    }
+                }
+
+                if (data.messages && data.messages.length > 0) {
+                    log.appendChild(renderMessagesBatch(data.messages));
+                } else {
+                    const emptyP = document.createElement("p");
+                    emptyP.className = "wa-empty";
+                    emptyP.dataset.empty = "true";
+                    emptyP.textContent = "No messages yet in this thread.";
+                    log.appendChild(emptyP);
+                }
+
+                log.scrollTop = log.scrollHeight;
+            }
+
+            // Update compose form action
+            if (form) {
+                form.action = "/jobs/" + job.id + "/chat";
+            }
+
+            // Title and notification state
+            originalTitle = job.work_ref + " • Chat • " + (document.title.split(" • ").pop() || "SiteLog");
+            unreadCount = 0;
+            document.title = originalTitle;
+
+            if (scrollBtn) scrollBtn.classList.add("hidden");
+            if (box) box.focus();
+        } catch (e) {
+            window.location.href = "/jobs/" + jobId + "/chat";
+        }
+    }
+
+    // Intercept clicks on sidebar chat links
+    document.querySelectorAll(".wa-chat-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+            const chatId = link.dataset.chatId;
+            if (chatId) {
+                e.preventDefault();
+                switchToChat(chatId, true);
+            }
+        });
+    });
+
+    // Browser Back / Forward navigation support
+    window.addEventListener("popstate", function () {
+        const match = window.location.pathname.match(/\/jobs\/([^\/]+)\/chat/);
+        if (match) {
+            switchToChat(match[1], false);
+        } else if (window.location.pathname === "/chats") {
+            const threadContent = document.getElementById("thread-content");
+            const threadEmpty = document.getElementById("thread-empty");
+            if (threadContent) threadContent.classList.add("hidden");
+            if (threadEmpty) threadEmpty.classList.remove("hidden");
+            document.querySelectorAll(".wa-chat-link").forEach(function (link) {
+                link.removeAttribute("aria-current");
+            });
+            if (log) log.dataset.jobId = "";
+        }
+    });
+
+    // --- Live Polling with Notifications ---
+    async function refreshChat() {
+        if (!log || !log.dataset.jobId) return;
+        const keep = isPinnedToBottom();
+        try {
+            const response = await fetch("/api/jobs/" + log.dataset.jobId + "/messages?limit=10");
+            if (!response.ok) return;
+            const payload = await response.json();
+            const known = new Set(Array.from(log.querySelectorAll("[data-message-id]"), function (node) { return node.dataset.messageId; }));
+            let addedFromOther = false;
+            let lastOtherMessage = null;
+
+            (payload.messages || []).forEach(function (message) {
+                if (known.has(message.id)) return;
+                const empty = log.querySelector("[data-empty]");
+                if (empty) empty.remove();
+                log.appendChild(renderMessage(message));
+
+                if (!isInitialLoad && message.author_id !== log.dataset.userId) {
+                    addedFromOther = true;
+                    lastOtherMessage = message;
+                }
+            });
+
+            if (addedFromOther && lastOtherMessage) {
+                // Trigger Sound, Toast, Desktop & Title Notification
+                playNotificationSound();
+                showNotificationToast(lastOtherMessage.author_name, lastOtherMessage.body);
+                triggerDesktopNotification(lastOtherMessage.author_name, lastOtherMessage.body);
+                unreadCount += 1;
+                setUnreadTitle(unreadCount);
+
+                if (!keep && scrollBtn && scrollText) {
+                    scrollText.textContent = "New: " + lastOtherMessage.author_name;
+                    scrollBtn.classList.remove("hidden");
+                }
+            }
+
+            if (keep) {
+                log.scrollTop = log.scrollHeight;
+            }
+        } catch (e) {} finally {
+            isInitialLoad = false;
+        }
+    }
+
+    // --- Dynamic Sidebar Update ---
+    async function refreshSidebar() {
+        try {
+            const res = await fetch("/api/chats");
+            if (!res.ok) return;
+            const data = await res.json();
+            (data.chats || []).forEach(function (chat) {
+                const link = document.querySelector('.wa-chat-link[data-chat-id="' + chat.id + '"]') ||
+                             document.querySelector('.wa-chat-link[href="/jobs/' + chat.id + '/chat"]');
+                if (link) {
+                    const prev = link.querySelector(".wa-side-preview");
+                    if (prev && chat.last_body) {
+                        prev.textContent = chat.last_body;
+                    }
+                }
+            });
+        } catch (e) {}
+    }
+
+    if (log) {
+        log.scrollTop = log.scrollHeight;
+        setTimeout(function() { isInitialLoad = false; }, 1000);
+        setInterval(refreshChat, 3500);
+        setInterval(refreshSidebar, 8000);
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "visible") {
+                refreshChat();
+                refreshSidebar();
+                unreadCount = 0;
+                document.title = originalTitle;
+            }
+        });
+    }
+
+    // --- Textarea Auto-Resize & Auto-Focus after messaging ---
+    if (box) {
+        const grow = function () {
+            box.style.height = "auto";
+            box.style.height = Math.min(box.scrollHeight, 160) + "px";
+        };
+        box.addEventListener("input", grow);
+
+        // Auto-focus immediately on page load
+        setTimeout(function () {
+            box.focus();
+        }, 50);
+
+        // Enter key to send (Shift+Enter for newline)
+        box.addEventListener("keydown", function (event) {
+            if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+            if (!window.matchMedia("(min-width: 640px)").matches) return;
+            event.preventDefault();
+            sendCurrentMessage();
+        });
+        grow();
+    }
+
+    if (form) {
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            sendCurrentMessage();
+        });
+    }
+
+    let isSending = false;
+    async function sendCurrentMessage() {
+        if (!box || isSending) return;
+        const text = box.value.trim();
+        if (!text) {
+            box.focus();
+            return;
+        }
+
+        isSending = true;
+        if (sendBtn) sendBtn.disabled = true;
+
+        const formData = new FormData(form);
+        formData.set("body", text);
+
+        // Clear input immediately, reset height, and AUTO-FOCUS!
+        box.value = "";
+        box.style.height = "auto";
+        box.focus();
+
+        try {
+            const resp = await fetch(form.action, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.message && log) {
+                    const empty = log.querySelector("[data-empty]");
+                    if (empty) empty.remove();
+                    log.appendChild(renderMessage(data.message));
+                    log.scrollTop = log.scrollHeight;
+                }
+                refreshChat();
+            } else {
+                form.submit();
+            }
+        } catch (err) {
+            form.submit();
+        } finally {
+            isSending = false;
+            if (sendBtn) sendBtn.disabled = false;
+            // ALWAYS auto focus the input after messaging
+            box.focus();
+        }
+    }
+</script>
+{% endblock %}

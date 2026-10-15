@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% from "_macros.html" import job_table, page_header, empty_state %}
+{% block title %}{{ title }} — {{ labels.brand }}{% endblock %}
+{% block content %}
+{% set filter_name = 'All' if status == 'all' else labels.status[status] %}
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
+    <div>
+        <nav class="mb-2" aria-label="Breadcrumb">
+            <a href="/dashboard" class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-purple-700 transition-colors">
+                <i class="fa-solid fa-arrow-left text-[10px]" aria-hidden="true"></i>
+                <span>Back to Dashboard</span>
+            </a>
+        </nav>
+        <div class="flex items-center gap-3">
+            <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-gray-950">{{ title.title() }}</h1>
+            <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 border border-purple-200">
+                {{ total }} {{ 'jobs' if total != 1 else 'job' }}
+            </span>
+        </div>
+        {% if q %}
+        <p class="mt-1 text-xs text-gray-500">
+            Filtered by keyword: <span class="font-bold text-gray-900">“{{ q }}”</span>
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="flex items-center gap-2">
+        <a href="/jobs/new" class="btn btn-ink text-xs sm:text-sm">
+            <i class="fa-solid fa-plus text-xs" aria-hidden="true"></i>
+            <span>New job</span>
+        </a>
+    </div>
+</div>
+
+<!-- Controls: Filter Chips + Search -->
+<div class="card mt-6 p-4 sm:p-5 bg-white shadow-card border border-gray-200/80">
+    <!-- Status Filter Tabs (UP2DATE Style) -->
+    <nav class="chip-row pb-3 border-b border-gray-100" aria-label="Filter by status">
+        {% for key, label in filters %}
+        <a href="/jobs?status={{ key }}&sort={{ sort }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+           class="filter-chip {% if key != 'all' %}status-{{ key }}{% endif %}"
+           {% if key == 'all' %}style="--status: #030712"{% endif %}
+           {% if key == status %}aria-current="true"{% endif %}>
+            {% if key == status %}
+            <i class="fa-solid fa-check text-[11px]" aria-hidden="true"></i>
+            {% endif %}
+            <span>{{ label }}</span>
+            <span class="ml-1 rounded-full px-1.5 py-0.2 text-[11px] font-bold {% if key == status %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ counts[key] }}
+            </span>
+        </a>
+        {% endfor %}
+    </nav>
+
+    <!-- Search & Sort Controls -->
+    <form method="get" action="/jobs" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" role="search">
+        <input type="hidden" name="status" value="{{ status }}">
+        <div class="min-w-0 flex-1">
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1" for="job-search-input">
+                Search jobs
+            </label>
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input id="job-search-input" type="search" name="q" value="{{ q }}" class="field pl-8 text-sm" autocomplete="off" placeholder="Search by work ref, client name, or site address…">
+            </div>
+        </div>
+
+        <div class="sm:w-48">
+            <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1" for="job-sort-select">
+                Sort by
+            </label>
+            <select id="job-sort-select" name="sort" class="field text-sm">
+                <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
+                <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest first</option>
+                <option value="visit" {% if sort == 'visit' %}selected{% endif %}>Visit date</option>
+            </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button class="btn btn-ink min-h-[2.75rem]" data-loading-label="Searching…">
+                <i class="fa-solid fa-filter text-xs"></i>
+                <span>Filter</span>
+            </button>
+            {% if q %}
+            <a href="/jobs?status={{ status }}&sort={{ sort }}" class="btn btn-ghost min-h-[2.75rem]" title="Clear search">
+                <i class="fa-solid fa-xmark text-xs"></i>
+                <span>Clear</span>
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Results Table -->
+{% if jobs %}
+{{ job_table(jobs, list_url, 'mt-4') }}
+
+<!-- Pagination -->
+{% if pages > 1 %}
+<nav class="mt-6 flex items-center justify-between gap-3 px-1" aria-label="Pagination">
+    {% if page > 1 %}
+    <a href="{{ prev_url }}" class="btn btn-ghost text-xs sm:text-sm">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+        <span>Previous</span>
+    </a>
+    {% else %}
+    <span class="btn btn-ghost opacity-40 cursor-not-allowed text-xs sm:text-sm">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+        <span>Previous</span>
+    </span>
+    {% endif %}
+
+    <div class="flex items-center gap-2">
+        <span class="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-gray-800 border border-gray-200 shadow-sm">
+            Page {{ page }} of {{ pages }}
+        </span>
+    </div>
+
+    {% if page < pages %}
+    <a href="{{ next_url }}" class="btn btn-ghost text-xs sm:text-sm">
+        <span>Next</span>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+    </a>
+    {% else %}
+    <span class="btn btn-ghost opacity-40 cursor-not-allowed text-xs sm:text-sm">
+        <span>Next</span>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+    </span>
+    {% endif %}
+</nav>
+{% endif %}
+
+{% elif q %}
+{{ empty_state('fa-magnifying-glass', 'No matches found', 'No jobs matching “' ~ q ~ '” were found in this view. Try adjusting your query.', '/jobs?status=' ~ status, 'Reset search') }}
+{% elif status == 'all' and user.role != 'office' %}
+{{ empty_state('fa-inbox', 'No jobs assigned to you', 'The All list is currently empty for your user account.', '/jobs/new', 'Log a visit') }}
+{% elif status == 'all' %}
+{{ empty_state('fa-inbox', 'No jobs yet', 'Your database does not have any recorded jobs yet.', '/jobs/new', 'Create a job') }}
+{% else %}
+{{ empty_state('fa-inbox', 'No ' ~ filter_name|lower ~ ' jobs', 'There are currently no jobs filed under ' ~ filter_name ~ '.', '/jobs/new', 'Create a job') }}
+{% endif %}
+
+{% endblock %}

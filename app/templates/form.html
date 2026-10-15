@@ -1,0 +1,918 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header %}
+{% block title %}{% if job %}Edit job — {{ job.work_ref }}{% else %}New job — {{ labels.brand }}{% endif %}{% endblock %}
+{% block content %}
+{% set value = posted if posted else (job if job else {}) %}
+{% set chosen = posted.engineer_ids if posted else (job.assignees|map(attribute='id')|list if job else []) %}
+{% set current_status = value.status if value.status is defined and value.status else 'new' %}
+
+<div class="w-full space-y-5">
+    <!-- Breadcrumb & Header Strip -->
+    <div class="flex items-center justify-between pb-1">
+        <nav aria-label="Breadcrumb">
+            <a href="{% if job %}/jobs/{{ job.id }}{% else %}/dashboard{% endif %}" class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-purple-700 transition-colors">
+                <i class="fa-solid fa-arrow-left text-[10px]" aria-hidden="true"></i>
+                <span>Cancel & Return</span>
+            </a>
+        </nav>
+        <span class="text-[11px] text-gray-400 font-medium"><span class="text-rose-500 font-bold">*</span> Required fields</span>
+    </div>
+
+    <div>
+        {{ page_header('Work Order Log', 'Edit ' ~ job.work_ref if job else 'Log New Site Visit', 'Fill out report details, timings, and engineer assignments.') }}
+    </div>
+
+    {% if not job %}
+    <div id="draft-notice" class="hidden rounded-xl border border-purple-200 bg-purple-50/80 px-4 py-2.5 text-xs font-semibold text-purple-950 flex items-center justify-between" role="status">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-down text-purple-600"></i>
+            <span>Draft automatically restored from local backup</span>
+        </div>
+        <button type="button" id="discard-draft" class="font-bold text-rose-600 hover:underline">Discard draft</button>
+    </div>
+    {% endif %}
+
+    {% if errors %}
+    <div id="form-errors" role="alert" class="wash-rose rounded-xl p-3.5 text-xs font-semibold shadow-sm">
+        <div class="flex items-center gap-2 text-xs font-bold text-rose-700">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Please correct the errors below:</span>
+        </div>
+        <ul class="mt-1.5 list-disc pl-5 font-medium space-y-0.5">
+            {% for message in errors.values() %}<li>{{ message }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Responsive 2-Column Grid Form (70% Left / 30% Right) -->
+    <form id="job-form" method="post" enctype="multipart/form-data" action="{% if job %}/jobs/{{ job.id }}/edit{% else %}/jobs/new{% endif %}" class="space-y-5" {% if not job %}data-draft="sitelog-new-job" data-restore-draft="{{ 'no' if errors else 'yes' }}"{% endif %}>
+        {{ csrf_field() }}
+
+        <div class="grid grid-cols-1 lg:grid-cols-10 gap-5 items-start">
+            <!-- Left Column: Cards 1, 2, 3 (70% width) -->
+            <div class="lg:col-span-7 space-y-5">
+                <!-- Core Job Information Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-4 sm:p-5">
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="work-ref-input">
+                                Work Reference <span class="text-rose-500">*</span>
+                            </label>
+                            <input id="work-ref-input" name="work_ref" required value="{{ value.work_ref or '' }}" autocapitalize="characters" autocomplete="off" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 font-mono text-xs sm:text-sm font-bold bg-white transition-all{% if errors.work_ref %} border-rose-500 bg-rose-50/20{% endif %}" placeholder="e.g. JB-10492" {% if errors.work_ref %}aria-invalid="true" aria-describedby="work-ref-error"{% endif %}>
+                            {% if errors.work_ref %}<span id="work-ref-error" class="mt-1 block text-xs font-medium text-rose-600">{{ errors.work_ref }}</span>{% endif %}
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="job-date">
+                                Visit Date
+                            </label>
+                            {% set picked_date = (value.job_date or '')|date_value %}
+                            <input id="job-date" type="date" name="job_date" value="{{ picked_date if posted or job else (picked_date or today_iso()) }}" aria-describedby="job-date-label" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm bg-white transition-all">
+                            <span id="job-date-label" class="mt-0.5 block text-[11px] font-medium text-gray-400">Date of the site visit</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="client-input">
+                                Client / Organization
+                            </label>
+                            <input id="client-input" name="client" value="{{ value.client or '' }}" autocomplete="organization" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm bg-white transition-all" placeholder="e.g. Apex Facilities, St. Jude Hospital">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="site-address-input">
+                                Site Address <span class="text-rose-500">*</span>
+                            </label>
+                            <input id="site-address-input" name="site_address" required value="{{ value.site_address or '' }}" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm bg-white transition-all{% if errors.site_address %} border-rose-500 bg-rose-50/20{% endif %}" placeholder="e.g. 14 Victoria Road, London" {% if errors.site_address %}aria-invalid="true" aria-describedby="address-error"{% endif %}>
+                            {% if errors.site_address %}<span id="address-error" class="mt-1 block text-xs font-medium text-rose-600">{{ errors.site_address }}</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assigned Engineers Card (Searchable Multi-Select) -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-4 sm:p-5 space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center justify-between">
+                        <span>Assigned Engineers</span>
+                        <span class="text-[10px] text-purple-700 font-bold uppercase tracking-wider bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/50">Search & Multi-Select</span>
+                    </label>
+
+                    <!-- Searchable Multi-Select Dropdown Container -->
+                    <div class="relative" id="engineer-multiselect">
+                        <!-- Hidden native checkboxes for form submission -->
+                        <div id="engineer-checkboxes" class="hidden">
+                            {% for engineer in engineers %}
+                            <input type="checkbox" name="engineer_ids" value="{{ engineer.id }}" id="check-eng-{{ engineer.id }}" {% if engineer.id in chosen %}checked{% endif %}>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Dropdown Trigger Container -->
+                        <div id="engineer-select-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox"
+                             class="w-full min-h-[42px] px-3 py-1.5 border border-gray-300 rounded-xl bg-white shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 flex flex-wrap items-center gap-1.5 cursor-pointer transition-all">
+                            
+                            <!-- Selected Tag Badges -->
+                            <div id="selected-engineers-tags" class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                                <!-- Injected by JS -->
+                            </div>
+
+                            <span id="engineer-placeholder" class="text-xs text-gray-400 select-none py-1">
+                                Select engineers…
+                            </span>
+
+                            <div class="ml-auto flex items-center pl-1 text-gray-400 gap-1.5 pointer-events-none">
+                                <span id="selected-count-badge" class="hidden text-[10px] font-bold bg-purple-100 text-purple-700 rounded-full px-1.5 py-0.2 border border-purple-200">0</span>
+                                <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" id="engineer-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown Panel with Search -->
+                        <div id="engineer-dropdown-menu"
+                             class="hidden absolute z-30 mt-1.5 w-full bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+                            
+                            <!-- Search Field inside Dropdown -->
+                            <div class="p-2 border-b border-gray-100 bg-gray-50/70">
+                                <div class="relative">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                    <input type="text" id="engineer-search-input" autocomplete="off" placeholder="Search engineer by name or email…"
+                                           class="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-purple-600 focus:ring-1 focus:ring-purple-600 text-gray-900 placeholder:text-gray-400">
+                                    <button type="button" id="clear-search-btn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Filterable Engineer Options List -->
+                            <div id="engineer-options-list" class="max-h-48 overflow-y-auto custom-scrollbar p-1 space-y-0.5" role="listbox">
+                                {% for engineer in engineers %}
+                                <div class="engineer-option flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer hover:bg-purple-50/70 transition-colors select-none"
+                                     data-id="{{ engineer.id }}"
+                                     data-name="{{ engineer.name }}"
+                                     data-email="{{ engineer.email or '' }}"
+                                     data-initials="{{ engineer.name[:2]|upper }}"
+                                     role="option">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <span class="flex h-6 w-6 items-center justify-center rounded-md bg-purple-100 text-purple-700 text-[10px] font-black shrink-0">
+                                            {{ engineer.name[:2]|upper }}
+                                        </span>
+                                        <div class="min-w-0">
+                                            <span class="text-xs font-bold text-gray-900 block truncate">{{ engineer.name }}</span>
+                                            <span class="text-[10px] text-gray-400 font-mono block truncate">{{ engineer.email or '' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="option-check-box flex items-center justify-center h-4 w-4 rounded border border-gray-300 text-purple-600 text-[10px] transition-colors">
+                                        <i class="fa-solid fa-check text-[9px] opacity-0 transition-opacity"></i>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                <div id="no-engineers-found" class="hidden py-4 text-center text-xs text-gray-400">
+                                    <i class="fa-solid fa-user-slash text-base text-gray-300 mb-1 block"></i>
+                                    No engineers match your search
+                                </div>
+                            </div>
+
+                            <!-- Dropdown Footer -->
+                            <div class="px-3 py-1.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-[11px]">
+                                <span id="dropdown-selection-summary" class="text-gray-500 font-medium">0 selected</span>
+                                <div class="flex items-center gap-2.5">
+                                    <button type="button" id="clear-all-engineers" class="text-gray-500 hover:text-rose-600 font-semibold transition-colors">Clear</button>
+                                    <button type="button" id="close-engineers-dropdown" class="text-purple-700 hover:text-purple-900 font-bold transition-colors">Done</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timings & Lifecycle Status Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-4 sm:p-5">
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="arrival-time" class="text-xs font-bold uppercase tracking-wider text-gray-700">Arrival Time</label>
+                                <button type="button" class="inline-flex items-center gap-1 rounded bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 text-[10px] font-bold transition-colors" data-now-for="arrival-time">
+                                    <i class="fa-solid fa-clock-rotate-left text-[9px]"></i> Now
+                                </button>
+                            </div>
+                            <input id="arrival-time" type="time" name="arrival_time" value="{{ (value.arrival_time or '')|time_value }}" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm font-mono bg-white transition-all">
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="departure-time" class="text-xs font-bold uppercase tracking-wider text-gray-700">Departure Time</label>
+                                <button type="button" class="inline-flex items-center gap-1 rounded bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 text-[10px] font-bold transition-colors" data-now-for="departure-time">
+                                    <i class="fa-solid fa-clock-rotate-left text-[9px]"></i> Now
+                                </button>
+                            </div>
+                            <input id="departure-time" type="time" name="departure_time" value="{{ (value.departure_time or '')|time_value }}" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm font-mono bg-white transition-all">
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="hours-worked" class="text-xs font-bold uppercase tracking-wider text-gray-700">Hours Worked</label>
+                                <span class="text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">Diff</span>
+                            </div>
+                            <div class="relative rounded-xl shadow-xs">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-purple-600 text-xs">
+                                    <i class="fa-solid fa-stopwatch"></i>
+                                </div>
+                                <input id="hours-worked" name="hours_worked" type="text" readonly value="{{ (value.arrival_time or '')|hours_worked(value.departure_time or '') }}" placeholder="e.g. 1h 30m" class="w-full pl-9 pr-3 py-2 border border-purple-200/80 bg-purple-50/50 rounded-xl text-xs sm:text-sm font-bold font-mono text-purple-950 focus:outline-hidden transition-all cursor-default">
+                            </div>
+                        </div>
+
+                        {% if not job or job.status != 'discarded' %}
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="status-input">
+                                Job Status
+                            </label>
+                            <select id="status-input" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm font-bold bg-white transition-all">
+                                <option value="new" {% if current_status == 'new' %}selected{% endif %}>🟣 {{ labels.status.new }}</option>
+                                <option value="in_progress" {% if current_status == 'in_progress' %}selected{% endif %}>🟡 {{ labels.status.in_progress }}</option>
+                                <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>🟢 {{ labels.status.completed }}</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Cards 4, 5 (30% width) -->
+            <div class="lg:col-span-3 space-y-5">
+                <!-- Findings & Technical Report Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-4 sm:p-5">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="issue-input">
+                                Initial Issue Description
+                            </label>
+                            <textarea id="issue-input" name="issue" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm leading-relaxed bg-white transition-all" placeholder="Customer complaint or fault reported…">{{ value.issue or '' }}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="findings-input">
+                                Engineer Findings & Actions
+                            </label>
+                            <textarea id="findings-input" name="findings" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm leading-relaxed bg-white transition-all" placeholder="Diagnostic results, tests or repairs carried out…">{{ value.findings or '' }}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="materials-input">
+                                Materials Used
+                            </label>
+                            <input id="materials-input" name="materials" value="{{ value.materials or '' }}" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm bg-white transition-all" placeholder="e.g. Copper piping, breaker">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="part-input">
+                                Part Number / Code
+                            </label>
+                            <input id="part-input" name="part_number" value="{{ value.part_number or '' }}" enterkeyhint="next" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm font-mono font-bold bg-white transition-all" placeholder="e.g. SN-8842-X">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1" for="recom-input">
+                                Recommended Follow-Up
+                            </label>
+                            <textarea id="recom-input" name="recommended_works" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-xl shadow-xs focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-xs sm:text-sm leading-relaxed bg-white transition-all" placeholder="Notes for next visit or quotations required…">{{ value.recommended_works or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Site Photos & Evidence Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-4 sm:p-5 space-y-4">
+                    <div class="space-y-4">
+                        <!-- Dropzone Area -->
+                        <div>
+                            <!-- Hidden Native File Input -->
+                            <input type="file" name="photos" id="photo-file-input" accept="image/jpeg,image/png,image/webp" multiple class="sr-only" {% if errors.photos %}aria-invalid="true" aria-describedby="photos-error"{% endif %}>
+
+                            <!-- Interactive Drag-and-Drop Zone -->
+                            <div id="photo-dropzone" tabindex="0" role="button" aria-label="Upload site photos"
+                                 class="relative border-2 border-dashed border-gray-300 hover:border-purple-500 bg-white hover:bg-purple-50/20 rounded-2xl p-4 sm:p-5 text-center cursor-pointer transition-all duration-200 focus:outline-hidden focus:border-purple-600 focus:ring-4 focus:ring-purple-600/10 group shadow-2xs{% if errors.photos %} border-rose-300 bg-rose-50/20{% endif %}">
+                                <div class="flex flex-col items-center justify-center pointer-events-none">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-xs">
+                                        <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                                    </div>
+                                    <p class="text-xs font-bold text-gray-800">
+                                        <span class="text-purple-700 group-hover:underline">Click to browse</span> or drag photos
+                                    </p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5">
+                                        JPG, PNG, WebP up to 10 MB
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Client-side Validation Warning -->
+                            <div id="dropzone-warning" class="hidden mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-600 shrink-0"></i>
+                                <span id="dropzone-warning-text"></span>
+                            </div>
+
+                            {% if errors.photos %}
+                            <div id="photos-error" class="mt-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
+                                <span>{{ errors.photos }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Staged Photos Preview (Files Selected in Browser, Ready to Upload) -->
+                        <div id="staged-photos-container" class="hidden pt-2 border-t border-purple-100/80 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-images text-purple-600 text-xs"></i>
+                                    Ready to Upload
+                                    <span id="staged-count-badge" class="rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold px-1.5 py-0.2 border border-purple-200">0</span>
+                                </span>
+                                <button type="button" id="clear-staged-photos" class="text-[10px] font-semibold text-rose-600 hover:text-rose-700 hover:underline">
+                                    Clear all
+                                </button>
+                            </div>
+                            <span id="staged-total-size" class="text-[10px] text-gray-400 font-normal block"></span>
+                            <div id="staged-photos-grid" class="grid gap-2 grid-cols-2">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Existing Saved Photos (From Database) -->
+                        {% if job and job.photos %}
+                        <div class="pt-2 border-t border-gray-200/60 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-camera-retro text-purple-600 text-xs"></i>
+                                    Saved Photos
+                                    <span class="rounded-full bg-gray-100 text-gray-700 text-[10px] font-bold px-1.5 py-0.2 border border-gray-200">{{ job.photos|length }}</span>
+                                </span>
+                            </div>
+                            <div class="grid gap-2 grid-cols-2">
+                                {% for photo in job.photos %}
+                                <figure class="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-xs aspect-[4/3] transition-all hover:shadow-md hover:border-purple-300">
+                                    <img src="{{ photo.url }}" alt="Photo {{ loop.index }}" loading="lazy" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105">
+                                    <span class="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-mono font-bold px-1 py-0.2 rounded backdrop-blur-xs transition-opacity group-hover:opacity-0">
+                                        #{{ loop.index }}
+                                    </span>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-gray-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-1.5">
+                                        <a href="{{ photo.url }}" target="_blank" class="inline-flex items-center gap-1 rounded bg-black/60 hover:bg-black/80 text-white px-1.5 py-0.5 text-[9px] font-medium backdrop-blur-xs transition-colors" title="Open full image in new tab">
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+                                        </a>
+                                        <button type="button" class="inline-flex items-center gap-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white px-1.5 py-0.5 text-[9px] font-bold shadow transition-colors" data-remove-photo="{{ photo.id }}" title="Delete photo from job">
+                                            <i class="fa-solid fa-trash text-[8px]"></i>
+                                        </button>
+                                    </div>
+                                </figure>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integrated Card Footer Action Bar -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 px-5 py-4 flex items-center justify-between">
+            <a href="{% if job %}/jobs/{{ job.id }}{% else %}/dashboard{% endif %}" class="text-xs font-bold text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 px-4 py-2.5 rounded-xl transition-all">
+                Cancel
+            </a>
+            <button class="bg-gray-950 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all text-xs sm:text-sm flex items-center space-x-2" data-save data-loading-label="Saving job…">
+                <i class="fa-solid fa-check text-xs"></i>
+                <span>Save Report</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const jobDate = document.getElementById("job-date");
+    const jobDateLabel = document.getElementById("job-date-label");
+    function showVisitDay() {
+        if (!jobDate || !jobDateLabel) return;
+        if (!jobDate.value) {
+            jobDateLabel.textContent = "Date of the site visit";
+            return;
+        }
+        const parts = jobDate.value.split("-").map(Number);
+        const day = new Date(parts[0], parts[1] - 1, parts[2]);
+        jobDateLabel.textContent = day.toLocaleDateString("en-GB", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        });
+    }
+    if (jobDate) {
+        jobDate.addEventListener("change", showVisitDay);
+        showVisitDay();
+    }
+
+    function updateHoursWorked() {
+        const arrivalInput = document.getElementById("arrival-time");
+        const departureInput = document.getElementById("departure-time");
+        const hoursInput = document.getElementById("hours-worked");
+        if (!arrivalInput || !departureInput || !hoursInput) return;
+
+        const arrival = arrivalInput.value.trim();
+        const departure = departureInput.value.trim();
+
+        if (!arrival || !departure) {
+            hoursInput.value = "";
+            return;
+        }
+
+        const [arrH, arrM] = arrival.split(":").map(Number);
+        const [depH, depM] = departure.split(":").map(Number);
+        if (isNaN(arrH) || isNaN(arrM) || isNaN(depH) || isNaN(depM)) {
+            hoursInput.value = "";
+            return;
+        }
+
+        let startMin = arrH * 60 + arrM;
+        let endMin = depH * 60 + depM;
+        if (endMin < startMin) {
+            endMin += 24 * 60;
+        }
+
+        const diff = endMin - startMin;
+        const h = Math.floor(diff / 60);
+        const m = diff % 60;
+
+        if (diff === 0) {
+            hoursInput.value = "0 mins";
+        } else if (h === 0) {
+            hoursInput.value = `${m}m`;
+        } else if (m === 0) {
+            hoursInput.value = `${h}h`;
+        } else {
+            hoursInput.value = `${h}h ${m}m`;
+        }
+    }
+
+    const arrivalEl = document.getElementById("arrival-time");
+    const departureEl = document.getElementById("departure-time");
+    if (arrivalEl && departureEl) {
+        arrivalEl.addEventListener("input", updateHoursWorked);
+        arrivalEl.addEventListener("change", updateHoursWorked);
+        departureEl.addEventListener("input", updateHoursWorked);
+        departureEl.addEventListener("change", updateHoursWorked);
+        updateHoursWorked();
+    }
+    document.querySelectorAll("[data-now-for]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const input = document.getElementById(button.getAttribute("data-now-for"));
+            if (!input) return;
+            const now = new Date();
+            input.value = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+    });
+    const form = document.getElementById("job-form");
+    if (form) {
+        form.querySelectorAll("[data-remove-photo]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "remove_photo";
+                input.value = button.getAttribute("data-remove-photo");
+                form.appendChild(input);
+                const save = form.querySelector("[data-save]");
+                if (save) save.setAttribute("data-loading-label", "Removing…");
+                form.requestSubmit(save || undefined);
+            });
+        });
+    }
+    if (form && form.dataset.draft) {
+        const key = form.dataset.draft;
+        const notice = document.getElementById("draft-notice");
+        function readDraft() {
+            try { return JSON.parse(localStorage.getItem(key) || "null"); }
+            catch (error) { return null; }
+        }
+        function writeDraft() {
+            const data = {};
+            form.querySelectorAll("input, textarea, select").forEach(function (el) {
+                if (!el.name || el.type === "file" || el.type === "hidden") return;
+                if (el.type === "checkbox") {
+                    data[el.name] = data[el.name] || [];
+                    if (el.checked) data[el.name].push(el.value);
+                    return;
+                }
+                data[el.name] = el.value;
+            });
+            try { localStorage.setItem(key, JSON.stringify(data)); }
+            catch (error) { /* safe */ }
+        }
+        if (form.dataset.restoreDraft === "yes") {
+            const saved = readDraft();
+            const hasText = saved && Object.keys(saved).some(function (name) {
+                const value = saved[name];
+                return Array.isArray(value) ? value.length : String(value || "").trim();
+            });
+            if (hasText) {
+                form.querySelectorAll("input, textarea, select").forEach(function (el) {
+                    if (!el.name || !Object.prototype.hasOwnProperty.call(saved, el.name) || el.type === "file" || el.type === "hidden") return;
+                    if (el.type === "checkbox") {
+                        el.checked = (saved[el.name] || []).indexOf(el.value) !== -1;
+                        return;
+                    }
+                    el.value = saved[el.name];
+                });
+                if (notice) notice.classList.remove("hidden");
+                showVisitDay();
+            }
+        }
+        let timer = 0;
+        function scheduleDraft() {
+            clearTimeout(timer);
+            timer = setTimeout(writeDraft, 400);
+        }
+        form.addEventListener("input", scheduleDraft);
+        form.addEventListener("change", scheduleDraft);
+        form.addEventListener("submit", function () {
+            if (form.checkValidity()) localStorage.removeItem(key);
+        });
+        const discard = document.getElementById("discard-draft");
+        if (discard) {
+            discard.addEventListener("click", function () {
+                localStorage.removeItem(key);
+                form.reset();
+                if (notice) notice.classList.add("hidden");
+                showVisitDay();
+            });
+        }
+    }
+
+    // --- Engineer Searchable Multi-Select Dropdown ---
+    (function initEngineerDropdown() {
+        const multiselect = document.getElementById("engineer-multiselect");
+        if (!multiselect) return;
+
+        const trigger = document.getElementById("engineer-select-trigger");
+        const menu = document.getElementById("engineer-dropdown-menu");
+        const chevron = document.getElementById("engineer-chevron");
+        const searchInput = document.getElementById("engineer-search-input");
+        const clearSearchBtn = document.getElementById("clear-search-btn");
+        const tagsContainer = document.getElementById("selected-engineers-tags");
+        const placeholder = document.getElementById("engineer-placeholder");
+        const countBadge = document.getElementById("selected-count-badge");
+        const summaryText = document.getElementById("dropdown-selection-summary");
+        const clearAllBtn = document.getElementById("clear-all-engineers");
+        const doneBtn = document.getElementById("close-engineers-dropdown");
+        const options = multiselect.querySelectorAll(".engineer-option");
+        const noFound = document.getElementById("no-engineers-found");
+
+        function getCheckbox(id) {
+            return document.getElementById("check-eng-" + id);
+        }
+
+        function syncUI() {
+            let selectedCount = 0;
+            tagsContainer.innerHTML = "";
+
+            options.forEach(opt => {
+                const id = opt.dataset.id;
+                const name = opt.dataset.name;
+                const initials = opt.dataset.initials;
+                const chk = getCheckbox(id);
+                const isChecked = chk && chk.checked;
+                const checkIcon = opt.querySelector(".option-check-box i");
+                const checkBox = opt.querySelector(".option-check-box");
+
+                if (isChecked) {
+                    selectedCount++;
+                    opt.classList.add("bg-purple-50/80");
+                    if (checkIcon) checkIcon.classList.remove("opacity-0");
+                    if (checkBox) {
+                        checkBox.classList.add("bg-purple-600", "border-purple-600", "text-white");
+                        checkBox.classList.remove("border-gray-300");
+                    }
+
+                    // Create Tag Pill
+                    const tag = document.createElement("span");
+                    tag.className = "inline-flex items-center gap-1 rounded-lg bg-purple-100 text-purple-800 px-2 py-0.5 text-xs font-bold border border-purple-200 transition-all";
+                    tag.innerHTML = `
+                        <span class="flex h-4 w-4 items-center justify-center rounded bg-purple-200 text-purple-950 text-[9px] font-black">${initials}</span>
+                        <span>${name}</span>
+                        <button type="button" class="ml-0.5 text-purple-400 hover:text-rose-600 focus:outline-hidden" data-remove-id="${id}" aria-label="Remove ${name}">
+                            <i class="fa-solid fa-xmark text-[9px]"></i>
+                        </button>
+                    `;
+                    tagsContainer.appendChild(tag);
+                } else {
+                    opt.classList.remove("bg-purple-50/80");
+                    if (checkIcon) checkIcon.classList.add("opacity-0");
+                    if (checkBox) {
+                        checkBox.classList.remove("bg-purple-600", "border-purple-600", "text-white");
+                        checkBox.classList.add("border-gray-300");
+                    }
+                }
+            });
+
+            if (selectedCount > 0) {
+                if (placeholder) placeholder.classList.add("hidden");
+                if (countBadge) {
+                    countBadge.classList.remove("hidden");
+                    countBadge.textContent = selectedCount;
+                }
+                if (summaryText) summaryText.textContent = `${selectedCount} selected`;
+            } else {
+                if (placeholder) placeholder.classList.remove("hidden");
+                if (countBadge) countBadge.classList.add("hidden");
+                if (summaryText) summaryText.textContent = "0 selected";
+            }
+        }
+
+        function openDropdown() {
+            menu.classList.remove("hidden");
+            trigger.setAttribute("aria-expanded", "true");
+            if (chevron) chevron.classList.add("rotate-180");
+            setTimeout(() => searchInput && searchInput.focus(), 50);
+        }
+
+        function closeDropdown() {
+            menu.classList.add("hidden");
+            trigger.setAttribute("aria-expanded", "false");
+            if (chevron) chevron.classList.remove("rotate-180");
+            if (searchInput) {
+                searchInput.value = "";
+                filterOptions("");
+            }
+        }
+
+        trigger.addEventListener("click", function(e) {
+            if (e.target.closest("[data-remove-id]")) {
+                const removeBtn = e.target.closest("[data-remove-id]");
+                const id = removeBtn.getAttribute("data-remove-id");
+                const chk = getCheckbox(id);
+                if (chk) {
+                    chk.checked = false;
+                    chk.dispatchEvent(new Event("change", { bubbles: true }));
+                    syncUI();
+                }
+                return;
+            }
+            if (menu.classList.contains("hidden")) {
+                openDropdown();
+            } else {
+                closeDropdown();
+            }
+        });
+
+        options.forEach(opt => {
+            opt.addEventListener("click", function() {
+                const id = opt.dataset.id;
+                const chk = getCheckbox(id);
+                if (chk) {
+                    chk.checked = !chk.checked;
+                    chk.dispatchEvent(new Event("change", { bubbles: true }));
+                    syncUI();
+                }
+            });
+        });
+
+        function filterOptions(query) {
+            const q = query.trim().toLowerCase();
+            let visibleCount = 0;
+            if (clearSearchBtn) {
+                clearSearchBtn.classList.toggle("hidden", !q);
+            }
+            options.forEach(opt => {
+                const name = (opt.dataset.name || "").toLowerCase();
+                const email = (opt.dataset.email || "").toLowerCase();
+                const matches = !q || name.includes(q) || email.includes(q);
+                opt.classList.toggle("hidden", !matches);
+                if (matches) visibleCount++;
+            });
+            if (noFound) {
+                noFound.classList.toggle("hidden", visibleCount > 0);
+            }
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener("input", function() {
+                filterOptions(searchInput.value);
+            });
+        }
+
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener("click", function() {
+                if (searchInput) {
+                    searchInput.value = "";
+                    searchInput.focus();
+                    filterOptions("");
+                }
+            });
+        }
+
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener("click", function() {
+                options.forEach(opt => {
+                    const chk = getCheckbox(opt.dataset.id);
+                    if (chk) chk.checked = false;
+                });
+                syncUI();
+            });
+        }
+
+        if (doneBtn) {
+            doneBtn.addEventListener("click", closeDropdown);
+        }
+
+        document.addEventListener("click", function(e) {
+            if (!multiselect.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape" && !menu.classList.contains("hidden")) {
+                closeDropdown();
+                trigger.focus();
+            }
+        });
+
+        syncUI();
+    })();
+
+    // --- Styled Photo Dropzone & Live Preview ---
+    (function initPhotoUpload() {
+        const fileInput = document.getElementById("photo-file-input");
+        const dropzone = document.getElementById("photo-dropzone");
+        const container = document.getElementById("staged-photos-container");
+        const grid = document.getElementById("staged-photos-grid");
+        const countBadge = document.getElementById("staged-count-badge");
+        const totalSizeLabel = document.getElementById("staged-total-size");
+        const clearBtn = document.getElementById("clear-staged-photos");
+        const warningBox = document.getElementById("dropzone-warning");
+        const warningText = document.getElementById("dropzone-warning-text");
+
+        if (!fileInput || !dropzone || !grid) return;
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + " B";
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+            return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+        }
+
+        function showWarning(msg) {
+            if (!warningBox || !warningText) return;
+            warningText.textContent = msg;
+            warningBox.classList.remove("hidden");
+            setTimeout(() => {
+                warningBox.classList.add("hidden");
+            }, 6000);
+        }
+
+        function updatePreviews() {
+            grid.innerHTML = "";
+            const files = Array.from(fileInput.files || []);
+
+            if (files.length === 0) {
+                container.classList.add("hidden");
+                return;
+            }
+
+            container.classList.remove("hidden");
+            if (countBadge) countBadge.textContent = files.length;
+            const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+            if (totalSizeLabel) totalSizeLabel.textContent = `· ${formatBytes(totalBytes)} total`;
+
+            files.forEach((file, index) => {
+                const card = document.createElement("div");
+                card.className = "group relative overflow-hidden rounded-xl border border-purple-200 bg-white shadow-xs aspect-[4/3] flex flex-col justify-end transition-all hover:shadow-md";
+
+                const isImage = file.type.startsWith("image/");
+                if (isImage) {
+                    const img = document.createElement("img");
+                    img.src = URL.createObjectURL(file);
+                    img.alt = file.name;
+                    img.className = "absolute inset-0 h-full w-full object-cover";
+                    img.onload = () => URL.revokeObjectURL(img.src);
+                    card.appendChild(img);
+                } else {
+                    const fallback = document.createElement("div");
+                    fallback.className = "absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400";
+                    fallback.innerHTML = `<i class="fa-solid fa-file-image text-2xl"></i>`;
+                    card.appendChild(fallback);
+                }
+
+                // File details and remove button overlay
+                const overlay = document.createElement("div");
+                overlay.className = "relative z-10 bg-gradient-to-t from-gray-950/85 via-gray-900/40 to-transparent p-1.5 flex items-end justify-between text-white";
+                overlay.innerHTML = `
+                    <div class="min-w-0 pr-1 leading-tight">
+                        <span class="block truncate text-[10px] font-bold">${file.name}</span>
+                        <span class="block text-[9px] text-purple-200 font-mono">${formatBytes(file.size)}</span>
+                    </div>
+                    <button type="button" class="shrink-0 rounded bg-rose-600/90 hover:bg-rose-700 text-white h-5 w-5 flex items-center justify-center text-[10px] shadow transition-colors" data-remove-staged="${index}" title="Remove ${file.name}">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                card.appendChild(overlay);
+
+                // Badge top-left: "New"
+                const newBadge = document.createElement("span");
+                newBadge.className = "absolute top-1.5 left-1.5 z-10 bg-purple-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs backdrop-blur-xs";
+                newBadge.textContent = "New";
+                card.appendChild(newBadge);
+
+                grid.appendChild(card);
+            });
+        }
+
+        function removeFileAt(indexToRemove) {
+            const dt = new DataTransfer();
+            const currentFiles = fileInput.files;
+            for (let i = 0; i < currentFiles.length; i++) {
+                if (i !== indexToRemove) {
+                    dt.items.add(currentFiles[i]);
+                }
+            }
+            fileInput.files = dt.files;
+            updatePreviews();
+        }
+
+        function handleFilesAdded(incomingFiles) {
+            const dt = new DataTransfer();
+            // Preserve existing staged files
+            if (fileInput.files) {
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    dt.items.add(fileInput.files[i]);
+                }
+            }
+
+            let rejectedCount = 0;
+            for (let i = 0; i < incomingFiles.length; i++) {
+                const f = incomingFiles[i];
+                if (!f.type.startsWith("image/") && !/\.(jpg|jpeg|png|webp)$/i.test(f.name)) {
+                    rejectedCount++;
+                    continue;
+                }
+                if (f.size > 10 * 1024 * 1024) {
+                    showWarning(`"${f.name}" exceeds 10 MB limit and was skipped.`);
+                    continue;
+                }
+                dt.items.add(f);
+            }
+
+            if (rejectedCount > 0) {
+                showWarning(`${rejectedCount} file(s) skipped. Only JPG, PNG, and WebP images are accepted.`);
+            }
+
+            fileInput.files = dt.files;
+            updatePreviews();
+        }
+
+        dropzone.addEventListener("click", () => fileInput.click());
+        dropzone.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+
+        fileInput.addEventListener("change", () => {
+            updatePreviews();
+        });
+
+        // Drag and drop event handlers
+        ["dragenter", "dragover"].forEach(evtName => {
+            dropzone.addEventListener(evtName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add("border-purple-600", "bg-purple-50/50", "ring-4", "ring-purple-600/10");
+            });
+        });
+
+        ["dragleave", "dragend"].forEach(evtName => {
+            dropzone.addEventListener(evtName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove("border-purple-600", "bg-purple-50/50", "ring-4", "ring-purple-600/10");
+            });
+        });
+
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove("border-purple-600", "bg-purple-50/50", "ring-4", "ring-purple-600/10");
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+                handleFilesAdded(e.dataTransfer.files);
+            }
+        });
+
+        // Remove single staged file
+        grid.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-remove-staged]");
+            if (btn) {
+                const idx = parseInt(btn.getAttribute("data-remove-staged"), 10);
+                removeFileAt(idx);
+            }
+        });
+
+        // Clear all staged files
+        if (clearBtn) {
+            clearBtn.addEventListener("click", () => {
+                fileInput.value = "";
+                updatePreviews();
+            });
+        }
+    })();
+</script>
+{% endblock %}

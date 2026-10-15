@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_pill, engineer_avatars %}
+{% block title %}{{ job.work_ref }} — {{ labels.brand }}{% endblock %}
+{% block content %}
+
+<!-- Breadcrumb & Top Actions -->
+<div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <nav aria-label="Breadcrumb">
+        <a href="{{ back_url }}" class="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-purple-700 transition-colors">
+            <i class="fa-solid fa-arrow-left text-[11px]" aria-hidden="true"></i>
+            <span>{{ back_label }}</span>
+        </a>
+    </nav>
+    <div class="flex items-center gap-2 flex-wrap">
+        <button type="button" onclick="window.print()" class="btn btn-ghost text-xs hidden sm:inline-flex" title="Print work order report">
+            <i class="fa-solid fa-print text-xs" aria-hidden="true"></i>
+            <span>Print Report</span>
+        </button>
+        <a href="/jobs/{{ job.id }}/chat" class="btn btn-ink text-xs sm:text-sm">
+            <i class="fa-solid fa-comments text-xs" aria-hidden="true"></i>
+            <span>Team Chat</span>
+        </a>
+        <a href="/jobs/{{ job.id }}/edit" class="btn btn-ghost text-xs sm:text-sm">
+            <i class="fa-solid fa-pen-to-square text-xs" aria-hidden="true"></i>
+            <span>Edit</span>
+        </a>
+        {% if job.status != 'discarded' %}
+        <a href="/jobs/{{ job.id }}/discard" class="btn btn-danger-ghost text-xs sm:text-sm">
+            <i class="fa-solid fa-ban text-xs" aria-hidden="true"></i>
+            <span>Discard</span>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid gap-6">
+
+<!-- Hero Job Header Card (UP2DATE Style) -->
+<article class="status-{{ job.status }} card overflow-hidden bg-white shadow-card border border-gray-200/80">
+    <!-- Top Status Indicator Strip -->
+    <div class="h-1.5 w-full" style="background: var(--status)"></div>
+
+    <div class="p-5 sm:p-7">
+        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-mono text-xs font-black uppercase px-2 py-0.5 rounded bg-gray-100 text-gray-900 border border-gray-300">
+                        {{ job.work_ref }}
+                    </span>
+                    {{ status_pill(job) }}
+                    <span class="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                        {{ job.source }}
+                    </span>
+                </div>
+
+                <h1 class="mt-3 text-2xl sm:text-3xl font-black tracking-tight text-gray-950 break-words">
+                    {{ job.client or 'Client Not Specified' }}
+                </h1>
+
+                {% if job.job_date %}
+                <p class="mt-1 flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                    <i class="fa-regular fa-calendar text-gray-400"></i>
+                    <span>Visit Date: {{ job.job_date|display_date }}</span>
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Lifecycle Stepper / Progress Bar (UP2DATE Style) -->
+            {% if job.status != 'discarded' %}
+            <div class="rounded-2xl bg-gray-50/80 p-3.5 border border-gray-200/80 shrink-0 min-w-[240px]">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-2.5">Workflow Stage</span>
+                <div class="flex items-center justify-between relative">
+                    <div class="absolute left-3 right-3 top-2.5 h-0.5 bg-gray-200 z-0"></div>
+                    <div class="flex flex-col items-center relative z-10">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full {% if job.status in ['new', 'in_progress', 'completed'] %}bg-purple-600 text-white{% else %}bg-gray-300 text-gray-600{% endif %} text-[9px] font-bold shadow-sm">
+                            1
+                        </span>
+                        <span class="text-[10px] font-bold text-gray-700 mt-1">Logged</span>
+                    </div>
+                    <div class="flex flex-col items-center relative z-10">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full {% if job.status in ['in_progress', 'completed'] %}bg-amber-500 text-white{% else %}bg-gray-200 text-gray-500{% endif %} text-[9px] font-bold shadow-sm">
+                            2
+                        </span>
+                        <span class="text-[10px] font-bold text-gray-700 mt-1">On Site</span>
+                    </div>
+                    <div class="flex flex-col items-center relative z-10">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full {% if job.status == 'completed' %}bg-emerald-600 text-white{% else %}bg-gray-200 text-gray-500{% endif %} text-[9px] font-bold shadow-sm">
+                            3
+                        </span>
+                        <span class="text-[10px] font-bold text-gray-700 mt-1">Done</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Site Location Bar -->
+        <div class="mt-5 rounded-2xl border border-gray-200/80 bg-gray-50/70 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-2.5 min-w-0">
+                <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700 shrink-0 mt-0.5 border border-purple-200 shadow-sm">
+                    <i class="fa-solid fa-location-dot text-xs"></i>
+                </span>
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Site Address</span>
+                    <span class="text-sm font-bold text-gray-900">
+                        {{ job.site_address or 'No address registered' }}
+                    </span>
+                </div>
+            </div>
+            {% if job.site_address %}
+            <a href="https://www.google.com/maps/search/?api=1&query={{ job.site_address|urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost text-xs shrink-0 bg-white">
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                <span>Open in Maps</span>
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Engineers metadata -->
+        <div class="mt-4 flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-bold text-gray-500">Assigned Engineers:</span>
+            {{ engineer_avatars(job.engineers) }}
+        </div>
+    </div>
+</article>
+
+<!-- Discarded Notice with Restore -->
+{% if job.status == 'discarded' %}
+<form method="post" action="/jobs/{{ job.id }}/restore" class="wash-rose flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4 sm:p-5 shadow-sm">
+    {{ csrf_field() }}
+    <div class="flex items-start gap-3">
+        <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base mt-0.5"></i>
+        <div>
+            <p class="text-sm font-bold">This job is currently discarded</p>
+            <p class="mt-0.5 text-xs">{{ job.discard_reason or 'No discard reason given.' }}</p>
+        </div>
+    </div>
+    <button class="btn btn-ink text-xs" data-loading-label="Restoring…">
+        <i class="fa-solid fa-rotate-left text-xs mr-1"></i>
+        <span>Restore Job</span>
+    </button>
+</form>
+{% endif %}
+
+<!-- Report & Time Grid -->
+<div class="grid gap-6 lg:grid-cols-3">
+    <!-- Visit & Timecard info -->
+    <div class="space-y-6">
+        <section class="card bg-white shadow-card border border-gray-200/80">
+            <h2 class="card-bar">
+                <span>Time Tracking</span>
+                <i class="fa-regular fa-clock text-gray-400"></i>
+            </h2>
+            <div class="p-5 space-y-3.5">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Arrival</span>
+                        <span class="text-base font-black text-gray-950 font-mono">{{ job.arrival_time or '—' }}</span>
+                    </div>
+                    <span class="h-8 w-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-door-open"></i>
+                    </span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Departure</span>
+                        <span class="text-base font-black text-gray-950 font-mono">{{ job.departure_time or '—' }}</span>
+                    </div>
+                    <span class="h-8 w-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-person-walking-arrow-right"></i>
+                    </span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-purple-50/70 border border-purple-200/80">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 block">Hours Worked</span>
+                        <span class="text-base font-black text-purple-950 font-mono">
+                            {{ (job.arrival_time or '')|hours_worked(job.departure_time or '') or '—' }}
+                        </span>
+                    </div>
+                    <span class="h-8 w-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs shadow-xs">
+                        <i class="fa-solid fa-stopwatch"></i>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Chat Widget Button -->
+        <div class="rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/70 to-purple-100/30 p-5 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md shadow-purple-600/30">
+                    <i class="fa-solid fa-comments text-sm"></i>
+                </span>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Team Communication</h3>
+                    <p class="text-xs text-gray-500">Live chat updates between office and field engineers.</p>
+                </div>
+            </div>
+            <a href="/jobs/{{ job.id }}/chat" class="btn btn-ink w-full mt-4 text-xs">
+                <span>Open Job Chat Thread</span>
+                <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Report Details -->
+    <div class="lg:col-span-2 space-y-6">
+        <section class="card bg-white shadow-card border border-gray-200/80">
+            <h2 class="card-bar">
+                <span>Site Report & Findings</span>
+                <i class="fa-solid fa-clipboard-list text-gray-400"></i>
+            </h2>
+            <div class="p-5 sm:p-6 divide-y divide-gray-100 space-y-5">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Reported Issue</h3>
+                    <p class="mt-1 text-sm font-medium text-gray-900 leading-relaxed whitespace-pre-wrap">{{ job.issue or 'No initial issue description registered.' }}</p>
+                </div>
+
+                <div class="pt-5">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Engineer Findings</h3>
+                    <p class="mt-1 text-sm font-medium text-gray-900 leading-relaxed whitespace-pre-wrap">{{ job.findings or '—' }}</p>
+                </div>
+
+                <div class="pt-5 grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Materials Used</h3>
+                        <p class="mt-1 text-sm font-medium text-gray-900 leading-relaxed whitespace-pre-wrap">{{ job.materials or '—' }}</p>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Part Number</h3>
+                        <p class="mt-1 text-sm font-mono font-bold text-gray-900 leading-relaxed">{{ job.part_number or '—' }}</p>
+                    </div>
+                </div>
+
+                <div class="pt-5">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Recommended Follow-up Works</h3>
+                    <p class="mt-1 text-sm font-medium text-gray-900 leading-relaxed whitespace-pre-wrap">{{ job.recommended_works or '—' }}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Photos Section -->
+        {% if job.photos %}
+        <section class="card bg-white shadow-card border border-gray-200/80">
+            <h2 class="card-bar">
+                <span>Site Photos ({{ job.photos|length }})</span>
+                <i class="fa-solid fa-camera text-gray-400"></i>
+            </h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-5 sm:p-6">
+                {% for photo in job.photos %}
+                <div class="group relative overflow-hidden rounded-xl border border-gray-200 aspect-[4/3] bg-gray-100 cursor-pointer shadow-sm" onclick="openLightbox('{{ photo.url }}')">
+                    <img src="{{ photo.url }}" alt="Photo {{ loop.index }} for {{ job.work_ref }}" loading="lazy" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-gray-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                        <i class="fa-solid fa-magnifying-glass-plus text-base"></i>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Email Origin Section -->
+        {% if job.email_body %}
+        <section class="card bg-white shadow-card border border-gray-200/80">
+            <h2 class="card-bar">
+                <span>Email Origin</span>
+                <i class="fa-solid fa-envelope text-gray-400"></i>
+            </h2>
+            <div class="p-5 sm:p-6">
+                <div class="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                    <div class="flex flex-col gap-1 text-xs text-gray-600 mb-3 pb-3 border-b border-gray-200/60">
+                        <div><strong class="text-gray-900">From:</strong> {{ job.email_from }}</div>
+                        <div><strong class="text-gray-900">Subject:</strong> {{ job.email_subject }}</div>
+                    </div>
+                    <div class="whitespace-pre-wrap text-sm leading-relaxed text-gray-800 font-sans">
+                        {{ job.email_body }}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</div>
+
+</div>
+
+<div class="mt-8 pt-4 border-t border-gray-200">
+    <a href="/dashboard" class="btn btn-ghost text-xs sm:text-sm">
+        <i class="fa-solid fa-arrow-left text-xs mr-1"></i>
+        <span>Return to Dashboard</span>
+    </a>
+</div>
+
+{% endblock %}

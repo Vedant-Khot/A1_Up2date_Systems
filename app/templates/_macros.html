@@ -1,0 +1,136 @@
+{% macro eyebrow(text) %}
+<span class="inline-flex items-center gap-1.5 rounded-md bg-purple-100/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-purple-800 border border-purple-200/60">
+    {{ text }}
+</span>
+{% endmacro %}
+
+{% macro empty_state(icon, title, body, cta_url='', cta_label='') %}
+<div class="card mt-6 flex flex-col items-center justify-center p-8 sm:p-12 text-center bg-white border border-gray-200/80 shadow-card">
+    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 shadow-sm border border-purple-100/80 mb-4">
+        <i class="fa-solid {{ icon }} text-xl" aria-hidden="true"></i>
+    </div>
+    {% if title %}<h3 class="text-base font-bold text-gray-900">{{ title }}</h3>{% endif %}
+    {% if body %}<p class="mt-1.5 max-w-sm text-sm text-gray-500 leading-relaxed">{{ body }}</p>{% endif %}
+    {% if cta_url and cta_label %}
+    <div class="mt-6">
+        <a href="{{ cta_url }}" class="btn btn-ink">
+            <i class="fa-solid fa-plus text-xs" aria-hidden="true"></i>
+            <span>{{ cta_label }}</span>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro page_header(eyebrow_text, title, subtitle='') %}
+<div class="flex flex-col gap-1">
+    {% if eyebrow_text %}
+    <div>{{ eyebrow(eyebrow_text) }}</div>
+    {% endif %}
+    <h1 class="mt-1 text-gray-950 break-words font-black tracking-tight">{{ title }}</h1>
+    {% if subtitle %}
+    <p class="mt-0.5 text-xs font-semibold text-gray-500">{{ subtitle }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro status_pill(job) %}
+<span class="status-{{ job.status }} chip">
+    {% if job.status == 'new' %}
+    <span class="chip-dot"></span>
+    {% elif job.status == 'in_progress' %}
+    <span class="chip-dot chip-dot-pulse"></span>
+    {% elif job.status == 'completed' %}
+    <i class="fa-solid fa-check text-[10px]" aria-hidden="true"></i>
+    {% elif job.status == 'discarded' %}
+    <i class="fa-solid fa-ban text-[10px]" aria-hidden="true"></i>
+    {% endif %}
+    <span>{{ job.status_label }}</span>
+</span>
+{% endmacro %}
+
+{% macro engineer_avatars(engineers_str) %}
+{% if engineers_str %}
+<div class="flex items-center gap-1.5 flex-wrap">
+    {% for name in engineers_str.split(',') %}
+    {% set clean_name = name.strip() %}
+    {% if clean_name %}
+    <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-700 border border-gray-200/80" title="{{ clean_name }}">
+        <i class="fa-regular fa-user text-[10px] text-gray-400"></i>
+        <span>{{ clean_name }}</span>
+    </span>
+    {% endif %}
+    {% endfor %}
+</div>
+{% else %}
+<span class="text-xs text-gray-400 italic">Unassigned</span>
+{% endif %}
+{% endmacro %}
+
+{% macro job_table(jobs, next_url='', margin='mt-6') %}
+<div class="card job-table-wrap {{ margin }} bg-white shadow-card border border-gray-200/80">
+    <table class="job-table">
+        <thead>
+            <tr>
+                <th scope="col" class="w-32">Work ref</th>
+                <th scope="col" class="w-36">Status</th>
+                <th scope="col">Site address</th>
+                <th scope="col" class="w-40">Client</th>
+                <th scope="col" class="w-44">Engineers</th>
+                <th scope="col" class="w-36">Visit date</th>
+                <th scope="col" class="w-20 text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr class="status-{{ job.status }} group hover:bg-purple-50/30 transition-colors">
+                <th scope="row" data-label="Work ref">
+                    <a href="/jobs/{{ job.id }}{% if next_url %}?next={{ next_url|urlencode }}{% endif %}" class="inline-flex items-center gap-1.5 font-bold text-gray-950 group-hover:text-purple-600 transition-colors">
+                        <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 group-hover:bg-purple-100 text-gray-800 group-hover:text-purple-900 border border-gray-200/80 group-hover:border-purple-200">{{ job.work_ref }}</span>
+                        <i class="fa-solid fa-arrow-right text-[10px] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-purple-600" aria-hidden="true"></i>
+                    </a>
+                </th>
+                <td data-label="Status">{{ status_pill(job) }}</td>
+                <td class="job-address" data-label="Site address">
+                    <div class="flex items-start gap-1.5 min-w-0">
+                        <i class="fa-solid fa-location-dot text-gray-400 text-xs mt-1 shrink-0" aria-hidden="true"></i>
+                        <div class="min-w-0">
+                            <span class="font-bold text-gray-800 line-clamp-1" title="{{ job.site_address }}">{{ job.site_address }}</span>
+                            {% if job.issue %}
+                            <span class="mt-0.5 block text-xs text-gray-500 line-clamp-1" title="{{ job.issue }}">{{ job.issue }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td data-label="Client">
+                    <span class="font-semibold text-gray-700 text-xs">{{ job.client or '—' }}</span>
+                </td>
+                <td data-label="Engineers">
+                    {{ engineer_avatars(job.engineers) }}
+                </td>
+                <td class="whitespace-nowrap text-xs font-semibold text-gray-600" data-label="Visit date">
+                    {% if job.job_date %}
+                    <span class="inline-flex items-center gap-1.5">
+                        <i class="fa-regular fa-calendar text-gray-400 text-[11px]" aria-hidden="true"></i>
+                        <span>{{ job.job_date|display_date }}</span>
+                    </span>
+                    {% else %}
+                    <span class="text-gray-400">—</span>
+                    {% endif %}
+                </td>
+                <td class="text-right whitespace-nowrap" data-label="Actions">
+                    <div class="flex items-center justify-end gap-1 relative z-10">
+                        <a href="/jobs/{{ job.id }}/chat" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors" title="Open chat" aria-label="Open chat for {{ job.work_ref }}">
+                            <i class="fa-solid fa-comments text-xs"></i>
+                        </a>
+                        <a href="/jobs/{{ job.id }}{% if next_url %}?next={{ next_url|urlencode }}{% endif %}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors" title="View details" aria-label="View job {{ job.work_ref }}">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}

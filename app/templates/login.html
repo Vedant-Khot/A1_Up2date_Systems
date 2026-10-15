@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Sign in — SiteLog{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="flex min-h-[calc(100dvh-10rem)] items-center justify-center py-6 px-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200/80 overflow-hidden">
+        <!-- Top brand accent banner -->
+        <div class="h-1.5 w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800"></div>
+
+        <div class="p-6 sm:p-10 space-y-6">
+            <!-- Brand Logo & Header -->
+            <div class="text-center space-y-3">
+                <div class="flex justify-center items-center">
+                    <img src="/static/logo.png" alt="{{ labels.brand }}" class="h-20 w-20 rounded-2xl object-contain bg-black border border-purple-200 shadow-md mx-auto">
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-gray-950 flex items-center justify-center gap-2">
+                        <span>{{ labels.brand }}</span>
+                        <span class="text-[11px] uppercase bg-purple-600 text-white font-bold px-2 py-0.5 rounded-md tracking-wider">Portal</span>
+                    </h1>
+                    <p class="text-xs text-gray-500 mt-1 font-medium">Job Dispatch and Logging System</p>
+                </div>
+            </div>
+
+            <!-- Error Message Alert -->
+            {% if error %}
+            <div id="login-error" role="alert" class="bg-rose-50 border-l-4 border-rose-500 p-3.5 rounded-xl">
+                <div class="flex items-center space-x-2.5">
+                    <div class="flex-shrink-0 text-rose-500 text-sm">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-rose-800">{{ error }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="post" action="/login" class="space-y-4">
+                {{ csrf_field() }}
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5" for="login-email">
+                        Work Email
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-500 text-xs">
+                            <i class="fa-solid fa-envelope"></i>
+                        </div>
+                        <input id="login-email" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required class="w-full pl-10 pr-3.5 py-2.5 border border-gray-300 rounded-xl shadow-sm focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-sm transition-all bg-white" placeholder="office@sitelog.demo" value="{{ email }}" {% if error %}aria-invalid="true" aria-describedby="login-error"{% endif %}>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5" for="login-password">
+                        Password
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-500 text-xs">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <input id="login-password" name="password" type="password" autocomplete="current-password" required class="w-full pl-10 pr-14 py-2.5 border border-gray-300 rounded-xl shadow-sm focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 text-sm transition-all bg-white" placeholder="••••••••" {% if error %}autofocus aria-invalid="true" aria-describedby="login-error"{% endif %}>
+                        <button type="button" id="show-password" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-purple-600 px-2 py-1 transition-colors" aria-pressed="false" aria-controls="login-password" aria-label="Show password">
+                            Show
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button class="w-full bg-gray-950 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex justify-center items-center space-x-2 text-sm" data-loading-label="Signing in…">
+                        <span>Sign in to Dashboard</span>
+                        <i class="fa-solid fa-arrow-right text-xs ml-1"></i>
+                    </button>
+                </div>
+            </form>
+
+            {% if show_demo_logins %}
+            <div class="border-t border-gray-100 pt-5 space-y-2.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Quick Demo Logins (Click to autofill)</span>
+                <div class="space-y-2">
+                    <button type="button" onclick="fillDemo('office@sitelog.demo', 'office123')" class="w-full text-left rounded-xl border border-gray-200/80 bg-gray-50/80 hover:bg-purple-50/60 hover:border-purple-300 p-3 text-xs transition-all flex items-center justify-between group">
+                        <div>
+                            <span class="font-bold text-gray-900 block group-hover:text-purple-900">{{ labels.role.office }} Account</span>
+                            <span class="text-gray-500 font-mono text-[11px]">office@sitelog.demo</span>
+                        </div>
+                        <span class="text-xs font-bold text-purple-600 group-hover:translate-x-0.5 transition-transform">Use &rarr;</span>
+                    </button>
+
+                    <button type="button" onclick="fillDemo('alex@sitelog.demo', 'engineer123')" class="w-full text-left rounded-xl border border-gray-200/80 bg-gray-50/80 hover:bg-purple-50/60 hover:border-purple-300 p-3 text-xs transition-all flex items-center justify-between group">
+                        <div>
+                            <span class="font-bold text-gray-900 block group-hover:text-purple-900">{{ labels.role.engineer }} (Alex)</span>
+                            <span class="text-gray-500 font-mono text-[11px]">alex@sitelog.demo</span>
+                        </div>
+                        <span class="text-xs font-bold text-purple-600 group-hover:translate-x-0.5 transition-transform">Use &rarr;</span>
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="pt-2 border-t border-gray-100 text-center">
+                <span class="text-[11px] text-gray-400 font-medium">Protected System • Powered by UP2DATE UI Theme</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const showPassword = document.getElementById("show-password");
+    const password = document.getElementById("login-password");
+    if (showPassword && password) {
+        showPassword.addEventListener("click", function () {
+            const show = password.type === "password";
+            password.type = show ? "text" : "password";
+            showPassword.setAttribute("aria-pressed", show ? "true" : "false");
+            showPassword.setAttribute("aria-label", show ? "Hide password" : "Show password");
+            showPassword.textContent = show ? "Hide" : "Show";
+        });
+    }
+    function fillDemo(email, pass) {
+        const e = document.getElementById("login-email");
+        const p = document.getElementById("login-password");
+        if (e && p) {
+            e.value = email;
+            p.value = pass;
+            e.focus();
+        }
+    }
+</script>
+{% endblock %}
