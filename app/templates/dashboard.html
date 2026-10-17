@@ -47,29 +47,54 @@
     </div>
 </div>
 
-<!-- KPI Cards Panel (UP2DATE Style: 4 Cards - Compact) -->
-<section class="mt-3.5 grid grid-cols-2 gap-2.5 lg:grid-cols-4" aria-label="Jobs by status">
+<!-- KPI cards — top status accent, extra side margin -->
+<style>
+    .kpi-card {
+        border: 1px solid var(--line);
+        background: var(--card);
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+    .kpi-card .kpi-bar {
+        height: 2px;
+        transition: height 160ms ease;
+    }
+    .kpi-card .kpi-arrow {
+        transition: color 160ms ease, transform 160ms ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--status-line);
+        box-shadow: 0 10px 24px rgb(0 0 0 / 0.35), 0 0 0 1px var(--status-line);
+    }
+    .kpi-card:hover .kpi-bar {
+        height: 3px;
+    }
+    .kpi-card:hover .kpi-arrow {
+        color: var(--status);
+        transform: translateX(2px);
+    }
+</style>
+<section class="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4" style="margin-left: 10px; margin-right: 10px;" aria-label="Jobs by status">
     {% for key, label in sections %}
-    <a href="/jobs?status={{ key }}&sort=newest" class="status-{{ key }} card card-interactive group relative flex flex-col justify-between overflow-hidden p-2.5 sm:p-3 bg-white shadow-2xs hover:shadow-sm border border-gray-200/80 rounded-xl text-inherit no-underline transition-all" aria-label="{{ label }}, {{ counts[key] }}. {{ blurbs[key] }}">
-        <!-- Status color top accent bar -->
-        <span class="absolute top-0 inset-x-0 h-0.5 transition-all group-hover:h-1" style="background: var(--status)"></span>
-
+    <a href="/jobs?status={{ key }}&sort=newest"
+       class="status-{{ key }} kpi-card card relative flex flex-col justify-between overflow-hidden p-3 sm:p-3.5 rounded-xl text-inherit no-underline"
+       aria-label="{{ label }}, {{ counts[key] }}. {{ blurbs[key] }}">
+        <span class="kpi-bar absolute top-0 inset-x-0" style="background: var(--status);" aria-hidden="true"></span>
         <div>
             <div class="flex items-center justify-between gap-1">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-gray-900 transition-colors">{{ label.title() }}</span>
-                <span class="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-md transition-transform group-hover:scale-105 shadow-2xs" style="background: var(--status-bg); color: var(--status); border: 1px solid var(--status-line);">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500">{{ label.title() }}</span>
+                <span class="flex h-6 w-6 items-center justify-center rounded-md" style="background: var(--status-bg); color: var(--status); border: 1px solid var(--status-line);">
                     <i class="fa-solid {{ icons[key] }} text-[10px]" aria-hidden="true"></i>
                 </span>
             </div>
-            <div class="mt-1 flex items-baseline gap-1.5">
-                <span class="heading text-xl sm:text-2xl font-black tracking-tight text-gray-950">{{ counts[key] }}</span>
-                <span class="text-[10px] font-semibold text-gray-400">jobs</span>
+            <div class="mt-1.5 flex items-baseline gap-1.5">
+                <span class="text-2xl font-semibold tracking-tight text-white" style="font-family: Poppins, sans-serif;">{{ counts[key] }}</span>
+                <span class="text-[10px] font-semibold text-gray-500">jobs</span>
             </div>
         </div>
-
-        <div class="mt-1.5 pt-1.5 border-t border-gray-100/80 flex items-center justify-between">
+        <div class="mt-2 pt-2 flex items-center justify-between" style="border-top: 1px solid #1a1d2e;">
             <span class="text-[10px] font-medium text-gray-500 truncate">{{ blurbs[key] }}</span>
-            <i class="fa-solid fa-arrow-right text-[9px] text-gray-300 group-hover:text-purple-600 transition-colors ml-1 shrink-0" aria-hidden="true"></i>
+            <i class="kpi-arrow fa-solid fa-arrow-right text-[9px] text-gray-500 ml-1 shrink-0" aria-hidden="true"></i>
         </div>
     </a>
     {% endfor %}

@@ -4,16 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#030712">
-    <link rel="icon" data-sitelog="true" href="/static/logo.png">
+    <meta name="theme-color" content="#050815">
+    <link rel="icon" data-sitelog="true" href="/static/logo.jpeg">
     <title>{% block title %}{{ labels.brand }}{% endblock %}</title>
 
-    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <!-- Google Fonts: Poppins (brand), Plus Jakarta Sans, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS CDN with UP2DATE Palette configuration -->
+    <!-- Tailwind CSS CDN with UP2DATE dark palette -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -25,26 +25,32 @@
                     },
                     colors: {
                         purple: {
-                            50: '#faf5ff',
-                            100: '#f3e8ff',
-                            200: '#e9d5ff',
-                            300: '#d8b4fe',
-                            400: '#c084fc',
-                            500: '#a855f7',
-                            600: '#9333ea',
-                            700: '#7e22ce',
-                            800: '#6b21a8',
-                            900: '#581c87',
-                            950: '#3b0764',
+                            50: '#1a1230',
+                            100: '#2a1a4a',
+                            200: '#46316c',
+                            300: '#7c4dff',
+                            400: '#9b6dff',
+                            500: '#8b45f0',
+                            600: '#7d2eec',
+                            700: '#6b25d4',
+                            800: '#5519b0',
+                            900: '#3a117a',
+                            950: '#1c0a3d',
                         },
-                        gray: {
-                            950: '#030712',
+                        up: {
+                            canvas: '#050815',
+                            sidebar: '#0c1020',
+                            card: '#121328',
+                            elevated: '#1d2033',
+                            border: '#252838',
+                            brand: '#7d2eec',
+                            muted: '#9194a6',
                         }
                     },
                     boxShadow: {
-                        'card': '0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
-                        'card-hover': '0 10px 25px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.05)',
-                        'purple-glow': '0 4px 14px 0 rgb(147 51 234 / 0.35)',
+                        'card': '0 1px 3px 0 rgb(0 0 0 / 0.35), 0 1px 2px -1px rgb(0 0 0 / 0.25)',
+                        'card-hover': '0 12px 28px -6px rgb(0 0 0 / 0.45)',
+                        'purple-glow': '0 4px 18px 0 rgb(125 46 236 / 0.4)',
                     }
                 },
             },
@@ -54,39 +60,41 @@
     {% block head %}{% endblock %}
     <style>
         :root {
-            --navy: #030712;
-            --purple: #9333ea;
-            --purple-hover: #7e22ce;
-            --purple-light: #faf5ff;
-            --purple-border: #e9d5ff;
-            --page: #f9fafb;
-            --card: #ffffff;
-            --text: #111827;
-            --heading: #030712;
-            --muted: #6b7280;
-            --quiet: #9ca3af;
-            --line: #e5e7eb;
-            --hover: #f3f4f6;
-            --focus: #9333ea;
-            --radius: 16px;
-            --radius-control: 12px;
+            --navy: #050815;
+            --purple: #7d2eec;
+            --purple-hover: #6b25d4;
+            --purple-light: #1a1230;
+            --purple-border: #46316c;
+            --page: #050815;
+            --card: #121328;
+            --elevated: #1d2033;
+            --text: #ffffff;
+            --heading: #ffffff;
+            --muted: #9194a6;
+            --quiet: #6b6f82;
+            --line: #252838;
+            --hover: #1d2033;
+            --focus: #7d2eec;
+            --radius: 12px;
+            --radius-control: 10px;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.35);
 
-            /* UP2DATE Status Tokens */
-            --new: #9333ea;
-            --new-bg: #faf5ff;
-            --new-line: #e9d5ff;
+            /* UP2DATE Status Tokens (dark pills) */
+            --new: #9b6dff;
+            --new-bg: rgba(125, 46, 236, 0.18);
+            --new-line: rgba(125, 46, 236, 0.45);
 
-            --pending: #d97706;
-            --pending-bg: #fffbeb;
-            --pending-line: #fde68a;
+            --pending: #dc8a3e;
+            --pending-bg: rgba(220, 138, 62, 0.16);
+            --pending-line: rgba(220, 138, 62, 0.4);
 
-            --completed: #059669;
-            --completed-bg: #ecfdf5;
-            --completed-line: #a7f3d0;
+            --completed: #34b39a;
+            --completed-bg: rgba(52, 179, 154, 0.16);
+            --completed-line: rgba(52, 179, 154, 0.4);
 
-            --discarded: #e11d48;
-            --discarded-bg: #fff1f2;
-            --discarded-line: #fecdd3;
+            --discarded: #e14b66;
+            --discarded-bg: rgba(225, 75, 102, 0.16);
+            --discarded-line: rgba(225, 75, 102, 0.4);
         }
 
         .status-new { --status: var(--new); --status-bg: var(--new-bg); --status-line: var(--new-line); }
@@ -161,33 +169,32 @@
             min-height: 2.5rem;
             border-radius: 9999px;
             border: 1px solid var(--line);
-            background: #fff;
-            color: #4b5563;
+            background: var(--elevated);
+            color: var(--muted);
             padding: 0.35rem 0.95rem;
             font-size: 0.8125rem;
             font-weight: 700;
             text-decoration: none;
             white-space: nowrap;
-            box-shadow: 0 1px 2px rgb(0 0 0 / 0.03);
             transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         a.filter-chip:hover {
-            border-color: #d1d5db;
-            background: #f9fafb;
-            color: #111827;
+            border-color: var(--purple-border);
+            background: var(--purple-light);
+            color: #fff;
             transform: translateY(-1px);
         }
 
         a.filter-chip[aria-current="true"] {
-            background: var(--navy);
-            border-color: var(--navy);
+            background: var(--purple);
+            border-color: var(--purple);
             color: #fff;
-            box-shadow: 0 2px 5px rgb(3 7 18 / 0.2);
+            box-shadow: 0 2px 10px rgb(125 46 236 / 0.35);
         }
 
         a.filter-chip[aria-current="true"]:hover {
-            background: #111827;
+            background: var(--purple-hover);
             color: #fff;
         }
 
@@ -196,30 +203,29 @@
             width: 100%;
             border-radius: var(--radius-control);
             border: 1px solid var(--line);
-            background: #ffffff;
+            background: var(--elevated);
             min-height: 2.75rem;
             padding: 0.625rem 0.875rem;
             font-weight: 400;
             font-family: inherit;
             font-size: 0.9375rem;
             color: var(--text);
-            box-shadow: 0 1px 2px rgb(0 0 0 / 0.03);
             transition: all 150ms ease;
         }
 
         .field:hover {
-            border-color: #cbd5e1;
+            border-color: #353744;
         }
 
         .field:focus {
             outline: none;
             border-color: var(--purple);
-            box-shadow: 0 0 0 3px rgb(147 51 234 / 0.18);
+            box-shadow: 0 0 0 3px rgb(125 46 236 / 0.28);
         }
 
         .field.is-invalid {
             border-color: var(--discarded);
-            background: #fff;
+            background: rgba(225, 75, 102, 0.08);
         }
 
         .field-error {
@@ -259,56 +265,55 @@
         }
 
         .btn-ink, .btn-brand, .btn-purple {
-            background: linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%);
+            background: var(--purple);
             color: #ffffff !important;
-            border: 1px solid #7e22ce;
-            box-shadow: 0 2px 6px rgb(147 51 234 / 0.35);
+            border: 1px solid var(--purple-hover);
+            box-shadow: 0 2px 10px rgb(125 46 236 / 0.4);
         }
 
         .btn-ink:hover, .btn-brand:hover, .btn-purple:hover {
-            background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
-            box-shadow: 0 4px 12px rgb(147 51 234 / 0.45);
+            background: var(--purple-hover);
+            box-shadow: 0 4px 16px rgb(125 46 236 / 0.5);
         }
 
         .btn-ghost {
-            background: #ffffff;
-            color: #374151;
+            background: var(--elevated);
+            color: var(--text);
             border: 1px solid var(--line);
-            box-shadow: 0 1px 2px rgb(0 0 0 / 0.03);
         }
 
         .btn-ghost:hover {
-            background: #f9fafb;
-            border-color: #cbd5e1;
-            color: #111827;
+            background: var(--purple-light);
+            border-color: var(--purple-border);
+            color: #fff;
         }
 
         .btn-danger-ghost {
-            background: #ffffff;
-            color: #e11d48;
-            border: 1px solid #fecdd3;
+            background: transparent;
+            color: var(--discarded);
+            border: 1px solid var(--discarded-line);
         }
 
         .btn-danger-ghost:hover {
-            background: #fff1f2;
-            border-color: #fda4af;
-            color: #be123c;
+            background: var(--discarded-bg);
+            border-color: var(--discarded);
+            color: #ff7a90;
         }
 
         .btn-rose {
-            background: #e11d48;
+            background: var(--discarded);
             color: #ffffff !important;
-            border: 1px solid #be123c;
+            border: 1px solid #c03852;
         }
 
         .btn-rose:hover {
-            background: #be123c;
+            background: #c03852;
         }
 
-        /* Cards & Surfaces (UP2DATE Style: rounded-2xl, border-gray-200/80) */
+        /* Cards & Surfaces */
         .card {
             border-radius: var(--radius);
-            border: 1px solid rgba(229, 231, 235, 0.85);
+            border: 1px solid var(--line);
             background: var(--card);
             box-shadow: var(--shadow);
             transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -319,26 +324,27 @@
         }
 
         .card-interactive:hover {
-            border-color: #d8b4fe;
-            box-shadow: 0 10px 25px -4px rgb(147 51 234 / 0.08), 0 4px 6px -2px rgb(0 0 0 / 0.04);
+            border-color: var(--purple-border);
+            box-shadow: 0 10px 25px -4px rgb(125 46 236 / 0.2);
             transform: translateY(-2px);
         }
 
         .card-bar {
-            background: #f9fafb;
+            background: rgba(29, 32, 51, 0.7);
             border-bottom: 1px solid var(--line);
             padding: 0.875rem 1.25rem;
             font-size: 0.8125rem;
             font-weight: 800;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            color: #4b5563;
+            color: var(--muted);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-        input {
-            outline : none
+        input, select, textarea {
+            outline: none;
+            color-scheme: dark;
         }
         .brand-mark {
             display: inline-flex;
@@ -347,20 +353,81 @@
             align-items: center;
             justify-content: center;
             border-radius: 12px;
-            background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+            background: var(--purple);
             color: #fff;
-            box-shadow: 0 4px 10px rgb(147 51 234 / 0.35);
+            box-shadow: 0 4px 12px rgb(125 46 236 / 0.4);
         }
 
-        /* Header Navigation (UP2DATE Black, White & Purple) */
+        @font-face {
+            font-family: "GC Movark";
+            src: url("/static/fonts/GCMovark-Bold.woff2") format("woff2"),
+                 url("/static/fonts/GCMovark-Bold.woff") format("woff"),
+                 url("/static/fonts/GCMovark-Bold.ttf") format("truetype"),
+                 url("/static/fonts/GCMovark-Bold.otf") format("opentype");
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: "GC Movark";
+            src: url("/static/fonts/GCMovark-Regular.woff2") format("woff2"),
+                 url("/static/fonts/GCMovark-Regular.woff") format("woff"),
+                 url("/static/fonts/GCMovark-Regular.ttf") format("truetype"),
+                 url("/static/fonts/GCMovark-Regular.otf") format("opentype");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        .brand-wordmark {
+            font-family: "GC Movark", "Poppins", "Plus Jakarta Sans", sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1;
+            text-decoration: none;
+        }
+        .brand-wordmark .brand-up,
+        .brand-wordmark .brand-date {
+            color: #ffffff;
+        }
+        .brand-wordmark .brand-two {
+            color: var(--purple);
+        }
+
+        /* Header Navigation */
         .site-header {
-            background: #030712;
+            background: #0c1020;
             color: #fff;
-            border-bottom: 1px solid rgba(147, 51, 234, 0.25);
-            box-shadow: 0 4px 20px -2px rgb(0 0 0 / 0.2);
+            border-bottom: 1px solid rgba(125, 46, 236, 0.28);
+            box-shadow: 0 4px 20px -2px rgb(0 0 0 / 0.45);
             position: sticky;
             top: 0;
             z-index: 40;
+        }
+        .site-header .header-bar {
+            height: 3.75rem;
+            min-height: 3.75rem;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .brand-logo-slot {
+            display: inline-flex;
+            width: 2.75rem;
+            height: 2.75rem;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+        }
+        .brand-logo {
+            width: 3.75rem;
+            height: 3.75rem;
+            max-width: none;
+            border-radius: 0.75rem;
+            object-fit: contain;
+            background: #000;
+            border: 1px solid rgba(125, 46, 236, 0.3);
+            box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
         }
 
         /* Table Design */
@@ -380,9 +447,9 @@
             vertical-align: middle;
         }
         .job-table thead th {
-            background: #f9fafb;
+            background: var(--elevated);
             border-bottom: 1px solid var(--line);
-            color: #6b7280;
+            color: var(--muted);
             font-size: 0.75rem;
             font-weight: 800;
             letter-spacing: 0.06em;
@@ -391,23 +458,23 @@
         }
         .job-table tbody tr {
             position: relative;
-            border-top: 1px solid #f3f4f6;
+            border-top: 1px solid var(--line);
             transition: background-color 150ms ease;
         }
         .job-table tbody tr:hover {
-            background: #faf5ff;
+            background: rgba(125, 46, 236, 0.1);
         }
         .job-table tbody th {
             font-weight: 700;
             white-space: nowrap;
         }
         .job-table tbody th a {
-            color: #030712;
+            color: var(--text);
             font-weight: 700;
             text-decoration: none;
         }
         .job-table tbody th a:hover {
-            color: var(--purple);
+            color: #9b6dff;
         }
         .job-table tbody th a::after {
             content: "";
@@ -431,10 +498,10 @@
             .job-table tbody tr {
                 margin: 0.75rem;
                 border: 1px solid var(--line);
-                border-radius: 14px;
+                border-radius: 12px;
                 padding: 0.5rem 0;
-                background: #fff;
-                box-shadow: 0 1px 3px rgb(0 0 0 / 0.04);
+                background: var(--card);
+                box-shadow: var(--shadow);
             }
             .job-table td, .job-table tbody th {
                 display: grid;
@@ -446,7 +513,7 @@
             }
             .job-table tbody th::before, .job-table td::before {
                 content: attr(data-label);
-                color: #6b7280;
+                color: var(--muted);
                 font-size: 0.75rem;
                 font-weight: 700;
                 text-transform: uppercase;
@@ -471,14 +538,14 @@
         }
 
         .wash-rose {
-            background: #fff1f2;
-            color: #be123c;
-            border: 1px solid #fecdd3;
+            background: var(--discarded-bg);
+            color: #ff7a90;
+            border: 1px solid var(--discarded-line);
         }
         .wash-green {
-            background: #ecfdf5;
-            color: #047857;
-            border: 1px solid #a7f3d0;
+            background: var(--completed-bg);
+            color: #5ee0c4;
+            border: 1px solid var(--completed-line);
         }
 
         /* Form Actions mobile stickiness */
@@ -491,11 +558,11 @@
             gap: 0.75rem;
             margin-inline: -1rem;
             border-top: 1px solid var(--line);
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(12, 16, 32, 0.96);
             backdrop-filter: blur(8px);
             padding: 0.875rem 1rem;
             padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
-            box-shadow: 0 -4px 16px rgb(3 7 18 / 0.06);
+            box-shadow: 0 -4px 16px rgb(0 0 0 / 0.35);
         }
         @media (min-width: 640px) {
             .form-actions {
@@ -515,14 +582,14 @@
             left: 0;
             right: 0;
             z-index: 45;
-            background: rgba(255, 255, 255, 0.96);
+            background: rgba(12, 16, 32, 0.97);
             backdrop-filter: blur(12px);
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid var(--line);
             display: flex;
             align-items: center;
             justify-content: space-around;
             padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom)) 0.5rem;
-            box-shadow: 0 -2px 10px rgb(0 0 0 / 0.04);
+            box-shadow: 0 -2px 12px rgb(0 0 0 / 0.4);
         }
         @media (min-width: 768px) {
             .mobile-bottom-nav { display: none; }
@@ -532,15 +599,235 @@
             width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: var(--elevated);
             border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #d8b4fe;
+            background: var(--purple-border);
             border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #a855f7;
+            background: var(--purple);
+        }
+
+        /* Navigation chooser sheet */
+        .nav-chooser {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .nav-chooser[hidden] { display: none !important; }
+        .nav-chooser-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+        }
+        .nav-chooser-sheet {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 26rem);
+            margin: 0 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+            padding: 0.75rem 1rem 1rem;
+            border-radius: 1.25rem 1.25rem 1rem 1rem;
+            background: #121328;
+            border: 1px solid #252838;
+            box-shadow: 0 20px 40px rgb(0 0 0 / 0.45);
+        }
+        .nav-chooser-handle {
+            width: 2.5rem;
+            height: 0.25rem;
+            margin: 0.15rem auto 0.85rem;
+            border-radius: 999px;
+            background: #353744;
+        }
+        .nav-chooser-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+        }
+        .nav-chooser-dest {
+            margin: 0.35rem 0 0.9rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.35;
+            max-height: 2.7em;
+            overflow: hidden;
+        }
+        .nav-chooser-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+        .nav-chooser-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-height: 3rem;
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.85rem;
+            background: #1d2033;
+            border: 1px solid #252838;
+            color: #fff !important;
+            text-decoration: none !important;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .nav-chooser-btn:hover { border-color: var(--purple-border); background: #22263a; }
+        .nav-chooser-icon {
+            display: inline-flex;
+            width: 2rem;
+            height: 2rem;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.6rem;
+            color: #fff;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .nav-chooser-label { flex: 1; text-align: left; }
+        .nav-chooser-ext { color: var(--muted); font-size: 0.7rem; }
+        .nav-chooser-cancel {
+            display: block;
+            width: 100%;
+            margin-top: 0.65rem;
+            min-height: 2.75rem;
+            border-radius: 0.85rem;
+            border: 1px solid #252838;
+            background: transparent;
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        .nav-chooser-cancel:hover { color: #fff; border-color: #353744; }
+        @media (min-width: 640px) {
+            .nav-chooser { align-items: center; }
+            .nav-chooser-sheet { margin-bottom: 0; border-radius: 1.1rem; }
+            .nav-chooser-handle { display: none; }
+        }
+
+        /* Remap light Tailwind utilities used in page templates */
+        body .bg-white,
+        body .bg-white\/80,
+        body .bg-gray-50,
+        body .bg-gray-50\/50,
+        body .bg-gray-50\/70,
+        body .bg-gray-50\/80,
+        body .bg-gray-100 {
+            background-color: var(--card) !important;
+        }
+        body .bg-gray-50\/80,
+        body .hover\:bg-gray-50:hover,
+        body .hover\:bg-gray-100:hover {
+            background-color: var(--elevated) !important;
+        }
+        body .border-gray-100,
+        body .border-gray-100\/80,
+        body .border-gray-200,
+        body .border-gray-200\/80,
+        body .border-gray-300,
+        body .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+        body .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+            border-color: var(--line) !important;
+        }
+        body .text-gray-950,
+        body .text-gray-900,
+        body .text-gray-800,
+        body .text-slate-900,
+        body .text-slate-800 {
+            color: var(--text) !important;
+        }
+        body .text-gray-700,
+        body .text-gray-600,
+        body .text-slate-700,
+        body .text-slate-600 {
+            color: #c8cad4 !important;
+        }
+        body .text-gray-500,
+        body .text-gray-400,
+        body .text-slate-500,
+        body .text-slate-400 {
+            color: var(--muted) !important;
+        }
+        body .text-gray-300 {
+            color: var(--quiet) !important;
+        }
+        body .site-header .text-gray-300,
+        body .mobile-bottom-nav .text-gray-500 {
+            color: #d1d5db !important;
+        }
+        body .site-header .hover\:text-white:hover {
+            color: #fff !important;
+        }
+        body .bg-purple-50,
+        body .bg-purple-50\/60,
+        body .bg-purple-100,
+        body .bg-purple-100\/70,
+        body .hover\:bg-purple-50:hover,
+        body .hover\:bg-purple-50\/60:hover,
+        body .hover\:bg-purple-50\/30:hover {
+            background-color: var(--purple-light) !important;
+        }
+        body .text-purple-900,
+        body .text-purple-800,
+        body .text-purple-700,
+        body .group-hover\:text-purple-900:is(:hover, :focus-within) *,
+        body .group:hover .group-hover\:text-purple-900,
+        body .group:hover .group-hover\:text-purple-700 {
+            color: #c4b5fd !important;
+        }
+        body .text-purple-600,
+        body .hover\:text-purple-700:hover,
+        body .hover\:text-purple-600:hover {
+            color: #9b6dff !important;
+        }
+        body .border-purple-200,
+        body .border-purple-200\/80,
+        body .border-purple-200\/60,
+        body .hover\:border-purple-300:hover {
+            border-color: var(--purple-border) !important;
+        }
+        body .bg-rose-50 {
+            background-color: var(--discarded-bg) !important;
+        }
+        body .text-rose-800 {
+            color: #ff7a90 !important;
+        }
+        body .bg-emerald-50 {
+            background-color: var(--completed-bg) !important;
+        }
+        body .shadow-card,
+        body .shadow-sm,
+        body .shadow-2xs,
+        body .shadow-xs {
+            box-shadow: var(--shadow) !important;
+        }
+        body .site-footer {
+            background: #0c1020 !important;
+            border-color: var(--line) !important;
+            color: var(--muted) !important;
+        }
+        body .site-footer .text-gray-800,
+        body .site-footer .font-bold {
+            color: #fff !important;
+        }
+        body .site-footer .text-gray-400 {
+            color: var(--quiet) !important;
+        }
+        /* Native form controls in templates that skip .field */
+        body input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+        body select,
+        body textarea {
+            background-color: var(--elevated);
+            color: var(--text);
+            border-color: var(--line);
+        }
+        body input::placeholder,
+        body textarea::placeholder {
+            color: var(--quiet);
         }
     </style>
 </head>
@@ -551,13 +838,15 @@
     {% if user is defined and user %}
     <!-- Header Navigation (UP2DATE Style: Black, White & Purple) -->
     <header class="site-header">
-        <div class="mx-auto flex w-full items-center justify-between px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
-            <!-- Brand Logo -->
-            <a href="{% if user is defined and user %}/dashboard{% else %}/{% endif %}" class="flex min-w-0 items-center gap-2.5 group">
-                <img src="/static/logo.png" alt="{{ labels.brand }}" class="h-9 w-9 rounded-xl object-contain bg-black border border-purple-500/30 transition-transform group-hover:scale-105 shadow-sm" aria-hidden="true">
+        <div class="header-bar mx-auto flex w-full items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-10">
+            <!-- Brand Logo — larger mark, bar height stays fixed -->
+            <a href="{% if user is defined and user %}/dashboard{% else %}/{% endif %}" class="flex min-w-0 items-center gap-2.5">
+                <span class="brand-logo-slot">
+                    <img src="/static/logo.jpeg" alt="" class="brand-logo" aria-hidden="true">
+                </span>
                 <div class="flex flex-col">
                     <div class="flex items-center gap-2">
-                        <span class="text-lg font-black tracking-tight text-white group-hover:text-purple-300 transition-colors">{{ labels.brand }}</span>
+                        <span class="brand-wordmark" aria-label="{{ labels.brand }}"><span class="brand-up">UP</span><span class="brand-two">2</span><span class="brand-date">DATE</span></span>
                         {% if user is defined and user %}
                             {% if user.role == 'office' %}
                             <span class="bg-purple-950/80 border border-purple-700/60 text-purple-300 text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wider flex items-center gap-1 shadow-sm">
@@ -662,7 +951,7 @@
         {% if notice %}
         <div class="{{ 'wash-rose' if notice.type == 'error' else 'wash-green' }} mb-6 flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold shadow-sm animate-fade-in" role="{{ 'alert' if notice.type == 'error' else 'status' }}">
             <div class="flex items-center gap-2.5">
-                <i class="fa-solid {{ 'fa-triangle-exclamation text-rose-600' if notice.type == 'error' else 'fa-circle-check text-emerald-600' }}"></i>
+                <i class="fa-solid {{ 'fa-triangle-exclamation text-rose-400' if notice.type == 'error' else 'fa-circle-check text-emerald-400' }}"></i>
                 <span>{{ notice.text }}</span>
             </div>
             <button type="button" onclick="this.parentElement.remove()" class="text-xs opacity-60 hover:opacity-100 p-1" aria-label="Dismiss notice">
@@ -676,20 +965,20 @@
     <!-- Mobile Bottom Navigation Bar (UP2DATE Style) -->
     {% if user is defined and user %}
     <nav class="mobile-bottom-nav" aria-label="Mobile Quick Nav">
-        <a href="/dashboard" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold {% if path == '/dashboard' or (path.startswith('/jobs') and not path.endswith('/chat') and not path.endswith('/new')) %}text-purple-600{% else %}text-gray-500 hover:text-gray-900{% endif %}">
+        <a href="/dashboard" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold {% if path == '/dashboard' or (path.startswith('/jobs') and not path.endswith('/chat') and not path.endswith('/new')) %}text-purple-400{% else %}text-gray-400 hover:text-white{% endif %}">
             <i class="fa-solid fa-list-check text-base mb-0.5"></i>
             <span>Jobs</span>
         </a>
-        <a href="/chats" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold {% if path == '/chats' or path.endswith('/chat') %}text-purple-600{% else %}text-gray-500 hover:text-gray-900{% endif %}">
+        <a href="/chats" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold {% if path == '/chats' or path.endswith('/chat') %}text-purple-400{% else %}text-gray-400 hover:text-white{% endif %}">
             <i class="fa-solid fa-comments text-base mb-0.5"></i>
             <span>Chats</span>
         </a>
-        <a href="/route-planner" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold {% if path.startswith('/route-planner') %}text-purple-600{% else %}text-gray-500 hover:text-gray-900{% endif %}">
+        <a href="/route-planner" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold {% if path.startswith('/route-planner') %}text-purple-400{% else %}text-gray-400 hover:text-white{% endif %}">
             <i class="fa-solid fa-route text-base mb-0.5"></i>
             <span>Route</span>
         </a>
-        <a href="/jobs/new" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold text-purple-600">
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-white shadow-md shadow-purple-600/30">
+        <a href="/jobs/new" class="flex flex-col items-center justify-center py-1 px-3 text-xs font-bold text-purple-400">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-white shadow-md shadow-purple-600/40">
                 <i class="fa-solid fa-plus text-sm"></i>
             </span>
             <span class="mt-0.5">New</span>
@@ -698,14 +987,14 @@
     {% endif %}
 
     <!-- Footer -->
-    <footer class="site-footer mt-auto border-t border-gray-200/80 bg-white py-6 text-center text-xs font-medium text-gray-500">
+    <footer class="site-footer mt-auto border-t py-6 text-center text-xs font-medium">
         <div class="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-10 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="flex items-center gap-2">
-                <img src="/static/logo.png" alt="" class="h-5 w-5 rounded object-contain bg-black border border-gray-200" aria-hidden="true">
-                <span class="font-bold text-gray-800">{{ labels.brand }} Systems</span>
+                <img src="/static/logo.jpeg" alt="" class="h-5 w-5 rounded object-contain bg-black border border-purple-800/50" aria-hidden="true">
+                <span><span class="brand-wordmark" style="font-size: 0.875rem;" aria-label="{{ labels.brand }}"><span class="brand-up">UP</span><span class="brand-two">2</span><span class="brand-date">DATE</span></span> Systems</span>
                 <span>• Operations & Job Automation</span>
             </div>
-            <p class="text-gray-400">&copy; 2026 {{ labels.brand }} Systems</p>
+            <p>&copy; 2026 {{ labels.brand }} Systems</p>
         </div>
     </footer>
 
@@ -716,6 +1005,34 @@
             <button type="button" onclick="closeLightbox()" class="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-950 text-white hover:bg-gray-800 shadow-lg" aria-label="Close photo preview">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
+        </div>
+    </div>
+
+    <!-- Navigation app chooser (Google / Apple / Waze) -->
+    <div id="nav-chooser" class="nav-chooser" hidden aria-hidden="true">
+        <div class="nav-chooser-backdrop" data-nav-close></div>
+        <div class="nav-chooser-sheet" role="dialog" aria-modal="true" aria-labelledby="nav-chooser-title">
+            <div class="nav-chooser-handle" aria-hidden="true"></div>
+            <h2 id="nav-chooser-title" class="nav-chooser-title">Navigate with</h2>
+            <p id="nav-chooser-dest" class="nav-chooser-dest"></p>
+            <div class="nav-chooser-actions">
+                <a id="nav-link-google" class="nav-chooser-btn" target="_blank" rel="noopener noreferrer">
+                    <span class="nav-chooser-icon" style="background:#4285F4;"><i class="fa-solid fa-map-location-dot"></i></span>
+                    <span class="nav-chooser-label">Google Maps</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square nav-chooser-ext"></i>
+                </a>
+                <a id="nav-link-apple" class="nav-chooser-btn" target="_blank" rel="noopener noreferrer">
+                    <span class="nav-chooser-icon" style="background:#111827;"><i class="fa-solid fa-apple-whole"></i></span>
+                    <span class="nav-chooser-label">Apple Maps</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square nav-chooser-ext"></i>
+                </a>
+                <a id="nav-link-waze" class="nav-chooser-btn" target="_blank" rel="noopener noreferrer">
+                    <span class="nav-chooser-icon" style="background:#33CCFF;"><i class="fa-solid fa-location-arrow"></i></span>
+                    <span class="nav-chooser-label">Waze</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square nav-chooser-ext"></i>
+                </a>
+            </div>
+            <button type="button" class="nav-chooser-cancel" data-nav-close>Cancel</button>
         </div>
     </div>
 
@@ -740,8 +1057,78 @@
                 }
             }
         }
+
+        function buildNavUrls(lat, lng, address) {
+            const hasCoords = lat !== "" && lng !== "" && !isNaN(Number(lat)) && !isNaN(Number(lng));
+            const label = (address || "").trim();
+            const encodedLabel = encodeURIComponent(label || (hasCoords ? (lat + "," + lng) : ""));
+            if (hasCoords) {
+                const coords = encodeURIComponent(Number(lat) + "," + Number(lng));
+                return {
+                    google: "https://www.google.com/maps/dir/?api=1&destination=" + coords + "&travelmode=driving",
+                    apple: "https://maps.apple.com/?daddr=" + coords + "&dirflg=d",
+                    waze: "https://waze.com/ul?ll=" + coords + "&navigate=yes"
+                };
+            }
+            return {
+                google: "https://www.google.com/maps/search/?api=1&query=" + encodedLabel,
+                apple: "https://maps.apple.com/?daddr=" + encodedLabel + "&dirflg=d",
+                waze: "https://waze.com/ul?q=" + encodedLabel + "&navigate=yes"
+            };
+        }
+
+        function openNavChooser(options) {
+            const sheet = document.getElementById("nav-chooser");
+            if (!sheet) return;
+            const opts = options || {};
+            const urls = (opts.google && opts.apple && opts.waze)
+                ? { google: opts.google, apple: opts.apple, waze: opts.waze }
+                : buildNavUrls(opts.lat || "", opts.lng || "", opts.address || "");
+            const dest = document.getElementById("nav-chooser-dest");
+            const g = document.getElementById("nav-link-google");
+            const a = document.getElementById("nav-link-apple");
+            const w = document.getElementById("nav-link-waze");
+            if (dest) dest.textContent = opts.address || (opts.lat && opts.lng ? (opts.lat + ", " + opts.lng) : "Selected stop");
+            if (g) g.href = urls.google;
+            if (a) a.href = urls.apple;
+            if (w) w.href = urls.waze;
+            sheet.hidden = false;
+            sheet.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeNavChooser() {
+            const sheet = document.getElementById("nav-chooser");
+            if (!sheet) return;
+            sheet.hidden = true;
+            sheet.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = "";
+        }
+
+        document.addEventListener("click", function (event) {
+            const trigger = event.target.closest("[data-nav-chooser]");
+            if (trigger) {
+                event.preventDefault();
+                openNavChooser({
+                    lat: trigger.getAttribute("data-lat") || "",
+                    lng: trigger.getAttribute("data-lng") || "",
+                    address: trigger.getAttribute("data-address") || "",
+                    google: trigger.getAttribute("data-nav-google") || "",
+                    apple: trigger.getAttribute("data-nav-apple") || "",
+                    waze: trigger.getAttribute("data-nav-waze") || ""
+                });
+                return;
+            }
+            if (event.target.closest("[data-nav-close]")) {
+                closeNavChooser();
+            }
+        });
+
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'Escape') {
+                closeLightbox();
+                closeNavChooser();
+            }
         });
 
         (function () {

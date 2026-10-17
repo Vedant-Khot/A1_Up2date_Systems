@@ -452,6 +452,8 @@ class Store:
         status = str(data.get("status") or "new").strip()
         if status not in {"new", "in_progress", "completed"}:
             status = "new"
+        if clean_ids and status == "new":
+            status = "in_progress"
         with self._db() as connection:
             serial = connection.execute("SELECT COALESCE(MAX(serial_number), 0) + 1 AS n FROM jobs").fetchone()["n"]
             connection.execute(
@@ -526,6 +528,13 @@ class Store:
                     "UPDATE jobs SET engineer_id = ? WHERE id = ?",
                     (clean_ids[0] if clean_ids else "", job_id),
                 )
+                if clean_ids:
+                    current = connection.execute("SELECT status FROM jobs WHERE id = ?", (job_id,)).fetchone()
+                    if current is not None and current["status"] == "new":
+                        connection.execute(
+                            "UPDATE jobs SET status = 'in_progress', is_complete = 0 WHERE id = ?",
+                            (job_id,),
+                        )
             row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
             return self._job(connection, row) if row else None
 
@@ -641,12 +650,28 @@ class Store:
     def add_message(self, job_id: str, author_id: str, body: str) -> dict[str, Any]:
         message_id = str(uuid.uuid4())
         created_at = _now()
+        cleaned = body.strip()
         with self._db() as connection:
             connection.execute(
                 "INSERT INTO job_messages (id, job_id, author_id, body, created_at) VALUES (?, ?, ?, ?, ?)",
-                (message_id, job_id, author_id, body.strip(), created_at),
+                (message_id, job_id, author_id, cleaned, created_at),
             )
-        return {"id": message_id, "body": body.strip(), "created_at": created_at}
+            row = connection.execute(
+                """SELECT m.id, m.author_id, m.body, m.created_at, u.name AS author_name, u.role AS author_role
+                   FROM job_messages m JOIN users u ON u.id = m.author_id
+                   WHERE m.id = ?""",
+                (message_id,),
+            ).fetchone()
+        if row is not None:
+            return dict(row)
+        return {
+            "id": message_id,
+            "author_id": author_id,
+            "author_name": "",
+            "author_role": "",
+            "body": cleaned,
+            "created_at": created_at,
+        }
 
     def add_photo(self, job_id: str, filename: str) -> dict[str, str]:
         photo_id = str(uuid.uuid4())

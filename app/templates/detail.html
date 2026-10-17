@@ -108,10 +108,13 @@
                 </div>
             </div>
             {% if job.site_address %}
-            <a href="https://www.google.com/maps/search/?api=1&query={{ job.site_address|urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost text-xs shrink-0 bg-white">
-                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                <span>Open in Maps</span>
-            </a>
+            <button type="button"
+                class="btn btn-ghost text-xs shrink-0 bg-white"
+                data-nav-chooser
+                data-address="{{ job.site_address }}">
+                <i class="fa-solid fa-location-arrow text-[10px]"></i>
+                <span>Navigate</span>
+            </button>
             {% endif %}
         </div>
 

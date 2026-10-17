@@ -105,13 +105,22 @@
     <div class="card p-4 sm:p-5 bg-white border border-gray-200/80 mb-6 shadow-2xs">
         <form method="get" action="/route-planner" class="space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <!-- Start Address -->
-                <div class="sm:col-span-2">
-                    <label for="start_address" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <!-- Start Address — pick a job site or type a custom depot -->
+                <div class="sm:col-span-2 space-y-2">
+                    <label for="start_job_id" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                         <i class="fa-solid fa-flag text-emerald-600"></i>
                         <span>Starting Depot / Location</span>
                     </label>
-                    <input type="text" id="start_address" name="start_address" value="{{ start_address }}" placeholder="e.g. HQ Office, 14 Baker Street, London NW1 6XE" class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none" required>
+                    <select id="start_job_id" name="start_job_id" class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none">
+                        <option value="" data-address="HQ Office, 14 Baker Street, London NW1 6XE" {% if not start_job_id %}selected{% endif %}>Custom / HQ address</option>
+                        {% for job in depot_jobs %}
+                        <option value="{{ job.id }}" data-address="{{ job.site_address }}" {% if start_job_id == job.id %}selected{% endif %}>
+                            {{ job.work_ref }} · {{ job.site_address }}{% if job.client %} ({{ job.client }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="start_address" name="start_address" value="{{ start_address }}" placeholder="e.g. HQ Office, 14 Baker Street, London NW1 6XE" class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none" required {% if start_job_id %}readonly{% endif %}>
+                    <p class="text-[11px] text-gray-500">Choose any job site as the start, or leave Custom / HQ and type an address.</p>
                 </div>
 
                 <!-- Date Filter -->
@@ -257,10 +266,19 @@
 
                             <!-- Quick Action Buttons -->
                             <div class="mt-2.5 flex items-center gap-2">
-                                <a href="{{ stop.nav_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost text-xs px-2.5 py-1 rounded-lg text-purple-700 border-purple-200 hover:bg-purple-50 font-bold inline-flex items-center gap-1" title="Open navigation to this stop">
+                                <button type="button"
+                                    class="btn btn-ghost text-xs px-2.5 py-1 rounded-lg text-purple-700 border-purple-200 hover:bg-purple-50 font-bold inline-flex items-center gap-1"
+                                    title="Choose Google Maps, Apple Maps, or Waze"
+                                    data-nav-chooser
+                                    data-lat="{{ stop.lat }}"
+                                    data-lng="{{ stop.lng }}"
+                                    data-address="{{ stop.site_address }}"
+                                    data-nav-google="{{ stop.nav_google }}"
+                                    data-nav-apple="{{ stop.nav_apple }}"
+                                    data-nav-waze="{{ stop.nav_waze }}">
                                     <i class="fa-solid fa-location-arrow text-[10px]"></i>
                                     <span>Navigate</span>
-                                </a>
+                                </button>
                                 <a href="/jobs/{{ stop.job_id }}/chat" class="btn btn-ghost text-xs px-2.5 py-1 rounded-lg text-gray-700 hover:bg-gray-100 font-bold inline-flex items-center gap-1" title="Open job chat">
                                     <i class="fa-regular fa-comment text-[10px]"></i>
                                     <span>Chat</span>
@@ -329,6 +347,25 @@
 {% block scripts %}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        const startJobSelect = document.getElementById("start_job_id");
+        const startAddressInput = document.getElementById("start_address");
+        if (startJobSelect && startAddressInput) {
+            const syncStartAddress = function () {
+                const option = startJobSelect.options[startJobSelect.selectedIndex];
+                const address = option ? (option.getAttribute("data-address") || "") : "";
+                if (startJobSelect.value) {
+                    startAddressInput.value = address;
+                    startAddressInput.readOnly = true;
+                } else {
+                    startAddressInput.readOnly = false;
+                    if (address && !startAddressInput.value.trim()) {
+                        startAddressInput.value = address;
+                    }
+                }
+            };
+            startJobSelect.addEventListener("change", syncStartAddress);
+        }
+
         const routeData = {{ route|tojson }};
         const mapContainer = document.getElementById("routeMap");
         if (!mapContainer || !window.L) return;
@@ -381,7 +418,7 @@
                     <div style="color: #4b5563; font-size: 12px; margin-bottom: 6px;">${stop.client || ''}</div>
                     <div style="font-size: 12px; margin-bottom: 8px;"><strong>Address:</strong> ${stop.site_address}</div>
                     <div style="display: flex; gap: 6px;">
-                        <a href="${stop.nav_url}" target="_blank" style="display: inline-block; padding: 4px 8px; background: #9333ea; color: #fff; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 700;">Navigate</a>
+                        <button type="button" data-nav-chooser data-lat="${stop.lat}" data-lng="${stop.lng}" data-address="${(stop.site_address || '').replace(/"/g, '&quot;')}" data-nav-google="${stop.nav_google || stop.nav_url || ''}" data-nav-apple="${stop.nav_apple || ''}" data-nav-waze="${stop.nav_waze || ''}" style="display: inline-block; padding: 4px 8px; background: #7d2eec; color: #fff; border-radius: 6px; border: 0; cursor: pointer; font-size: 11px; font-weight: 700;">Navigate</button>
                         <a href="/jobs/${stop.job_id}" style="display: inline-block; padding: 4px 8px; background: #f3f4f6; color: #111; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 700;">Job Details</a>
                     </div>
                 </div>

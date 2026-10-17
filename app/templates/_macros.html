@@ -1,16 +1,16 @@
 {% macro eyebrow(text) %}
-<span class="inline-flex items-center gap-1.5 rounded-md bg-purple-100/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-purple-800 border border-purple-200/60">
+<span class="inline-flex items-center gap-1.5 rounded-md bg-purple-950 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-purple-300 border border-purple-800/60">
     {{ text }}
 </span>
 {% endmacro %}
 
 {% macro empty_state(icon, title, body, cta_url='', cta_label='') %}
-<div class="card mt-6 flex flex-col items-center justify-center p-8 sm:p-12 text-center bg-white border border-gray-200/80 shadow-card">
-    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 shadow-sm border border-purple-100/80 mb-4">
+<div class="card mt-6 flex flex-col items-center justify-center p-8 sm:p-12 text-center">
+    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-950 text-purple-300 shadow-sm border border-purple-800/60 mb-4">
         <i class="fa-solid {{ icon }} text-xl" aria-hidden="true"></i>
     </div>
-    {% if title %}<h3 class="text-base font-bold text-gray-900">{{ title }}</h3>{% endif %}
-    {% if body %}<p class="mt-1.5 max-w-sm text-sm text-gray-500 leading-relaxed">{{ body }}</p>{% endif %}
+    {% if title %}<h3 class="text-base font-bold text-white">{{ title }}</h3>{% endif %}
+    {% if body %}<p class="mt-1.5 max-w-sm text-sm text-gray-400 leading-relaxed">{{ body }}</p>{% endif %}
     {% if cta_url and cta_label %}
     <div class="mt-6">
         <a href="{{ cta_url }}" class="btn btn-ink">
@@ -55,8 +55,8 @@
     {% for name in engineers_str.split(',') %}
     {% set clean_name = name.strip() %}
     {% if clean_name %}
-    <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-700 border border-gray-200/80" title="{{ clean_name }}">
-        <i class="fa-regular fa-user text-[10px] text-gray-400"></i>
+    <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold text-gray-300 border" style="background:#1d2033;border-color:#252838" title="{{ clean_name }}">
+        <i class="fa-regular fa-user text-[10px] text-gray-500"></i>
         <span>{{ clean_name }}</span>
     </span>
     {% endif %}

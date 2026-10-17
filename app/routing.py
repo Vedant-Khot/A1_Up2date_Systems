@@ -309,6 +309,26 @@ def solve_best_route(
     return order
 
 
+def build_navigation_urls(lat: float, lng: float, address: str = "") -> dict[str, str]:
+    """Single-destination links for Google Maps, Apple Maps, and Waze."""
+    coords = f"{lat},{lng}"
+    encoded_coords = urllib.parse.quote(coords)
+    label = (address or "").strip()
+    encoded_label = urllib.parse.quote(label) if label else encoded_coords
+    return {
+        "google": (
+            f"https://www.google.com/maps/dir/?api=1"
+            f"&destination={encoded_coords}"
+            f"&travelmode=driving"
+        ),
+        "apple": f"https://maps.apple.com/?daddr={encoded_coords}&dirflg=d",
+        "waze": f"https://waze.com/ul?ll={encoded_coords}&navigate=yes",
+        "google_search": f"https://www.google.com/maps/search/?api=1&query={encoded_label}",
+        "apple_search": f"https://maps.apple.com/?daddr={encoded_label}&dirflg=d",
+        "waze_search": f"https://waze.com/ul?q={encoded_label}&navigate=yes",
+    }
+
+
 def build_google_maps_directions_url(
     start_label: str,
     start_coords: tuple[float, float],
@@ -445,12 +465,12 @@ def plan_route(
         stop_data["cumulative_distance_miles"] = round(cum_dist, 1)
         stop_data["cumulative_duration_mins"] = cum_dur
 
-        # Single stop navigation link
-        stop_data["nav_url"] = (
-            f"https://www.google.com/maps/dir/?api=1"
-            f"&destination={stop_data['lat']},{stop_data['lng']}"
-            f"&travelmode=driving"
-        )
+        # Single stop navigation links (Google / Apple / Waze)
+        nav = build_navigation_urls(stop_data["lat"], stop_data["lng"], stop_data.get("site_address") or "")
+        stop_data["nav_url"] = nav["google"]
+        stop_data["nav_google"] = nav["google"]
+        stop_data["nav_apple"] = nav["apple"]
+        stop_data["nav_waze"] = nav["waze"]
 
         ordered_stops.append(stop_data)
         cur_lat, cur_lon = stop_data["lat"], stop_data["lng"]

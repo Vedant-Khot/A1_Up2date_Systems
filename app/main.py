@@ -471,16 +471,19 @@ def api_create_job(payload: dict[str, Any], user: dict[str, Any] = Depends(requi
     existing = store.job_by_work_ref(work_ref)
     if existing is not None and not store.can_access(user, existing):
         raise HTTPException(status_code=404, detail="Job not found")
-    return store.save_job(_normalize_schedule(payload), assignee_ids)
+    data = _progress_if_assigned(_normalize_schedule(payload), assignee_ids)
+    return store.save_job(data, assignee_ids)
 
 
 @app.post("/api/jobs/{job_id}")
 def api_update_job(job_id: str, payload: dict[str, Any], user: dict[str, Any] = Depends(require_user)) -> dict[str, Any]:
-    _job_or_404(job_id, user)
+    job = _job_or_404(job_id, user)
     assignee_ids = payload.get("engineer_ids")
     if assignee_ids is not None:
         assignee_ids = _assignees_for(user, [str(item) for item in assignee_ids])
-    updated = store.update_job(job_id, _normalize_schedule(payload), assignee_ids)
+    effective = assignee_ids if assignee_ids is not None else [person["id"] for person in job.get("assignees") or []]
+    data = _progress_if_assigned(_normalize_schedule(payload), effective, current_status=job["status"])
+    updated = store.update_job(job_id, data, assignee_ids)
     if updated is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return updated
@@ -538,7 +541,9 @@ def api_add_message(job_id: str, payload: dict[str, Any], user: dict[str, Any] =
     body = str(payload.get("body") or "").strip()
     if not body:
         raise HTTPException(status_code=400, detail="Message text is required")
-    return store.add_message(job_id, user["id"], body)
+    message = store.add_message(job_id, user["id"], body)
+    message["when"] = _format_when(message.get("created_at"))
+    return message
 
 
 @app.get("/api/chats")
@@ -781,6 +786,25 @@ def _job_payload(posted: dict[str, Any], allow_status: bool) -> dict[str, Any]:
     return payload
 
 
+def _progress_if_assigned(
+    data: dict[str, Any],
+    assignee_ids: Optional[list[str]],
+    *,
+    current_status: str = "new",
+) -> dict[str, Any]:
+    """Jobs with at least one engineer move from new → in_progress."""
+    payload = dict(data)
+    status = payload.get("status") if payload.get("status") in {"new", "in_progress", "completed"} else current_status
+    if status not in {"new", "in_progress", "completed"}:
+        status = "new"
+    if assignee_ids and status == "new":
+        payload["status"] = "in_progress"
+        payload["is_complete"] = False
+    elif "status" not in payload and status in {"new", "in_progress", "completed"}:
+        payload["status"] = status
+    return payload
+
+
 def _render_job_form(request: Request, user: dict[str, Any], job: Optional[dict[str, Any]], posted: Optional[dict[str, Any]], errors: dict[str, str]) -> HTMLResponse:
     return TEMPLATES.TemplateResponse(request, "form.html", {
         "user": user,
@@ -831,7 +855,7 @@ async def create_job_page(request: Request):
     existing = store.job_by_work_ref(posted["work_ref"].strip())
     if existing is not None and not store.can_access(user, existing):
         return RedirectResponse("/dashboard", status_code=303)
-    job = store.save_job(_job_payload(posted, True), chosen)
+    job = store.save_job(_progress_if_assigned(_job_payload(posted, True), chosen), chosen)
     for content, suffix in photos:
         _store_photo(job["id"], content, suffix)
     flash(request, "Job saved.")
@@ -882,7 +906,11 @@ async def save_job_page(request: Request, job_id: str):
     if errors:
         return _render_job_form(request, user, job, posted, errors)
     allow_status = job["status"] != "discarded"
-    store.update_job(job_id, _job_payload(posted, allow_status), _assignees_for(user, posted["engineer_ids"]))
+    chosen = _assignees_for(user, posted["engineer_ids"])
+    payload = _job_payload(posted, allow_status)
+    if allow_status:
+        payload = _progress_if_assigned(payload, chosen, current_status=job["status"])
+    store.update_job(job_id, payload, chosen)
     for content, suffix in photos:
         _store_photo(job_id, content, suffix)
     remove_id = str(form.get("remove_photo") or "").strip()
@@ -988,6 +1016,7 @@ def route_planner_page(
     engineer_id: str = "",
     status: str = "",
     start_address: str = "HQ Office, 14 Baker Street, London NW1 6XE",
+    start_job_id: str = "",
     round_trip: bool = False,
 ) -> HTMLResponse:
     user = _page_user(request)
@@ -995,9 +1024,19 @@ def route_planner_page(
         return _need_login(request)
     engineers = store.list_engineers()
     all_jobs = store.list_jobs(user)
+    depot_jobs = [job for job in all_jobs if (job.get("site_address") or "").strip()]
+
+    start_job = None
+    if start_job_id.strip():
+        candidate = store.get_job(start_job_id.strip())
+        if candidate is not None and store.can_access(user, candidate) and (candidate.get("site_address") or "").strip():
+            start_job = candidate
+            start_address = str(candidate["site_address"]).strip()
 
     filtered_jobs = []
     for j in all_jobs:
+        if start_job is not None and j["id"] == start_job["id"]:
+            continue
         if date and j.get("job_date") != date:
             continue
         if engineer_id:
@@ -1020,12 +1059,14 @@ def route_planner_page(
             "user": user,
             "engineers": engineers,
             "jobs": all_jobs,
+            "depot_jobs": depot_jobs,
             "filtered_jobs": filtered_jobs,
             "route": route,
             "current_date": date,
             "current_engineer_id": engineer_id,
             "current_status": status,
             "start_address": start_address,
+            "start_job_id": start_job["id"] if start_job else "",
             "round_trip": round_trip,
         },
     )
