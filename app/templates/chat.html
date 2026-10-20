@@ -121,6 +121,15 @@
         line-height: 1.25;
         color: var(--text);
     }
+    .wa-heading {
+        display: block;
+        min-width: 0;
+        color: inherit;
+        text-decoration: none;
+        cursor: pointer;
+        border-radius: 0.5rem;
+    }
+    .wa-heading:hover h1 { color: var(--brand, #9b6dff); }
     .wa-sub {
         margin: 0;
         overflow: hidden;
@@ -373,11 +382,13 @@
                 <a href="/chats" class="wa-back wa-to-list" aria-label="All chats"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
                 <span id="chat-header-avatar" class="wa-avatar" aria-hidden="true">{{ job.work_ref[:2] if job else '' }}</span>
                 <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2">
-                        <h1 id="chat-header-title">{{ job.work_ref if job else '' }}</h1>
-                        <span id="chat-header-status">{{ status_pill(job) if job else '' }}</span>
-                    </div>
-                    <p id="chat-header-sub" class="wa-sub">{{ job.site_address if job else '' }}{% if job and job.engineers %} · {{ job.engineers }}{% elif job %} · Unassigned{% endif %}</p>
+                    <a id="chat-header-link" href="{% if job %}/jobs/{{ job.id }}{% else %}#{% endif %}" class="wa-heading" {% if job %}title="Open job details"{% endif %}>
+                        <div class="flex items-center gap-2">
+                            <h1 id="chat-header-title">{{ job.work_ref if job else '' }}</h1>
+                            <span id="chat-header-status">{{ status_pill(job) if job else '' }}</span>
+                        </div>
+                        <p id="chat-header-sub" class="wa-sub">{{ job.site_address if job else '' }}{% if job and job.engineers %} · {{ job.engineers }}{% elif job %} · Unassigned{% endif %}</p>
+                    </a>
                 </div>
                 <div class="flex items-center gap-2 ml-auto">
                     <button type="button" id="notif-toggle-btn" class="wa-notif-btn" title="Notification chime & alerts" aria-label="Toggle notifications">
@@ -832,6 +843,7 @@
             const headerStatus = document.getElementById("chat-header-status");
             const headerSub = document.getElementById("chat-header-sub");
             const headerDetails = document.getElementById("chat-header-details");
+            const headerLink = document.getElementById("chat-header-link");
 
             if (headerAvatar) headerAvatar.textContent = (job.work_ref || "").slice(0, 2);
             if (headerTitle) headerTitle.textContent = job.work_ref;
@@ -840,6 +852,10 @@
                 headerSub.textContent = (job.site_address || "") + (job.engineers ? " · " + job.engineers : " · Unassigned");
             }
             if (headerDetails) headerDetails.href = "/jobs/" + job.id;
+            if (headerLink) {
+                headerLink.href = "/jobs/" + job.id;
+                headerLink.title = "Open job details";
+            }
 
             // Reset log and populate with 10 initial messages
             if (log) {
