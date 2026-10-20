@@ -402,7 +402,7 @@
 
                     {% set thread = namespace(day='', author='') %}
                     {% set hues = ['#7d2eec', '#9b6dff', '#34b39a', '#dc8a3e'] %}
-                    {% for message in messages %}
+            {% for message in messages %}
                     {% set stamp = message.created_at|when %}
                     {% set parts = stamp.split(', ') %}
                     {% set day = parts[0] if parts|length > 1 else stamp %}
@@ -421,12 +421,12 @@
                             {% endif %}
                             <span class="wa-text">{{ message.body }}</span>
                             <span class="wa-time"><time datetime="{{ message.created_at }}">{{ clock }}</time></span>
-                        </div>
-                    </article>
+                </div>
+            </article>
                     {% set thread.author = message.author_id %}
-                    {% else %}
+            {% else %}
                     <p class="wa-empty" data-empty>No messages yet in this thread.</p>
-                    {% endfor %}
+            {% endfor %}
                 </div>
                 <button type="button" id="scroll-bottom-btn" class="wa-scroll-btn hidden" aria-label="Scroll to newest messages">
                     <i class="fa-solid fa-arrow-down text-[10px]"></i>
@@ -454,7 +454,7 @@
             <p class="text-xs text-gray-500 mt-1">Select a job from the left sidebar to open or start a conversation.</p>
         </div>
     </div>
-</section>
+    </section>
 
 <!-- Floating Toast Notification -->
 <div id="chat-toast" class="wa-toast" role="alert" aria-live="assertive">

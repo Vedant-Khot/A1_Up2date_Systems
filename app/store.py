@@ -449,11 +449,14 @@ class Store:
         job_id = str(uuid.uuid4())
         created_at = _now()
         clean_ids = self._valid_engineer_ids(assignee_ids)
-        status = str(data.get("status") or "new").strip()
-        if status not in {"new", "in_progress", "completed"}:
-            status = "new"
-        if clean_ids and status == "new":
+        # new = unassigned, in_progress/pending = assigned, completed = report submitted
+        if _as_bool(data.get("is_complete")) or data.get("status") == "completed":
+            status = "completed"
+        elif clean_ids:
             status = "in_progress"
+        else:
+            status = "new"
+        is_complete = 1 if status == "completed" else 0
         with self._db() as connection:
             serial = connection.execute("SELECT COALESCE(MAX(serial_number), 0) + 1 AS n FROM jobs").fetchone()["n"]
             connection.execute(
@@ -477,7 +480,7 @@ class Store:
                     str(data.get("findings") or "").strip(),
                     str(data.get("materials") or "").strip(),
                     str(data.get("part_number") or "").strip(),
-                    1 if _as_bool(data.get("is_complete")) else 0,
+                    is_complete,
                     str(data.get("recommended_works") or "").strip(),
                     status,
                     clean_ids[0] if clean_ids else "",
@@ -505,12 +508,21 @@ class Store:
             if field in data:
                 assignments.append(f"{field} = ?")
                 values.append(str(data.get(field) or "").strip())
+        if "is_complete" in data and "status" not in data:
+            data = dict(data)
+            data["status"] = "completed" if _as_bool(data.get("is_complete")) else "in_progress"
+        if "status" in data and data["status"] == "completed":
+            data = dict(data)
+            data["is_complete"] = True
         if "is_complete" in data:
             assignments.append("is_complete = ?")
             values.append(1 if _as_bool(data.get("is_complete")) else 0)
         if "status" in data and data["status"] in {"new", "in_progress", "completed"}:
             assignments.append("status = ?")
             values.append(data["status"])
+            if data["status"] != "completed" and "is_complete" not in data:
+                assignments.append("is_complete = ?")
+                values.append(0)
         for field in ("source", "email_from", "email_subject", "email_body", "email_message_id"):
             if field in data:
                 assignments.append(f"{field} = ?")
@@ -528,13 +540,13 @@ class Store:
                     "UPDATE jobs SET engineer_id = ? WHERE id = ?",
                     (clean_ids[0] if clean_ids else "", job_id),
                 )
-                if clean_ids:
-                    current = connection.execute("SELECT status FROM jobs WHERE id = ?", (job_id,)).fetchone()
-                    if current is not None and current["status"] == "new":
-                        connection.execute(
-                            "UPDATE jobs SET status = 'in_progress', is_complete = 0 WHERE id = ?",
-                            (job_id,),
-                        )
+                current = connection.execute("SELECT status FROM jobs WHERE id = ?", (job_id,)).fetchone()
+                if current is not None and current["status"] != "discarded" and current["status"] != "completed":
+                    next_status = "in_progress" if clean_ids else "new"
+                    connection.execute(
+                        "UPDATE jobs SET status = ?, is_complete = 0 WHERE id = ?",
+                        (next_status, job_id),
+                    )
             row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
             return self._job(connection, row) if row else None
 
@@ -568,6 +580,9 @@ class Store:
 
     def chat_threads(self, user: dict[str, Any]) -> list[dict[str, Any]]:
         jobs = self.list_jobs(user)
+        # Engineers only see pending (assigned) jobs — not new/unassigned or completed.
+        if user.get("role") == "engineer":
+            jobs = [job for job in jobs if job.get("status") == "in_progress"]
         previews = self._latest_messages([job["id"] for job in jobs])
         for job in jobs:
             preview = previews.get(job["id"]) or {}
